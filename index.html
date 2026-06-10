@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1e5e3a">
+<title>Mi Bodega</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  :root {
+    --verde:#1e5e3a; --verde-claro:#e8f5ee; --rojo:#c0392b; --rojo-claro:#fdecea;
+    --gris:#f4f5f7; --texto:#222; --texto2:#666; --borde:#e0e0e0; --naranja:#e67e22;
+  }
+  body { background:var(--gris); color:var(--texto); padding-bottom:70px; }
+
+  header { background:var(--verde); color:#fff; padding:14px 16px; position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:1.2rem; }
+  header .fecha { font-size:.8rem; opacity:.85; }
+
+  .tab-content { display:none; padding:14px; max-width:600px; margin:0 auto; }
+  .tab-content.activa { display:block; }
+
+  nav { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--borde); display:flex; z-index:10; }
+  nav button { flex:1; padding:10px 4px 8px; border:none; background:none; font-size:.7rem; color:var(--texto2); cursor:pointer; }
+  nav button .icono { display:block; font-size:1.4rem; margin-bottom:2px; }
+  nav button.activa { color:var(--verde); font-weight:bold; }
+
+  .tarjeta { background:#fff; border-radius:12px; padding:14px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .boton { border:none; border-radius:10px; padding:12px 16px; font-size:1rem; font-weight:bold; cursor:pointer; }
+  .boton-verde { background:var(--verde); color:#fff; }
+  .boton-rojo { background:var(--rojo); color:#fff; }
+  .boton-claro { background:var(--verde-claro); color:var(--verde); }
+  .boton-rojo-claro { background:var(--rojo-claro); color:var(--rojo); }
+  .boton-gris { background:#eee; color:var(--texto); }
+  .boton-naranja { background:var(--naranja); color:#fff; }
+  .boton-grande { width:100%; padding:14px; font-size:1.05rem; margin-bottom:10px; }
+  .fila-botones { display:flex; gap:8px; }
+  .fila-botones .boton { flex:1; }
+
+  .titulo-seccion { font-size:1rem; font-weight:bold; margin:16px 0 8px; color:var(--texto2); }
+  .buscador { width:100%; padding:12px; border-radius:10px; border:1px solid var(--borde); font-size:1rem; margin-bottom:10px; }
+
+  .prod-fila { display:flex; justify-content:space-between; align-items:center; }
+  .prod-nombre { font-size:1.05rem; font-weight:bold; }
+  .prod-unidad { font-size:.8rem; color:var(--texto2); }
+  .prod-stock { font-size:1.6rem; font-weight:bold; text-align:right; }
+  .stock-bajo { color:var(--rojo); }
+  .prod-acciones { display:flex; gap:8px; margin-top:10px; }
+  .prod-acciones .boton { flex:1; padding:10px; font-size:.95rem; }
+  .enlace-editar { background:none; border:none; color:var(--texto2); font-size:.85rem; cursor:pointer; padding:4px; }
+
+  .cama-contador { display:flex; align-items:center; gap:14px; }
+  .cama-contador button { width:52px; height:52px; border-radius:50%; border:none; font-size:1.6rem; font-weight:bold; cursor:pointer; }
+  .cama-num { font-size:1.8rem; font-weight:bold; min-width:60px; text-align:center; }
+  .total-grande { background:var(--verde); color:#fff; border-radius:12px; padding:16px; text-align:center; margin-bottom:12px; }
+  .total-grande .num { font-size:2.2rem; font-weight:bold; }
+  .total-grande .etq { font-size:.85rem; opacity:.9; }
+
+  .resumen-caja { display:flex; gap:8px; margin-bottom:12px; }
+  .resumen-caja .caja-box { flex:1; background:#fff; border-radius:12px; padding:12px 8px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .caja-box .etq { font-size:.75rem; color:var(--texto2); }
+  .caja-box .num { font-size:1.05rem; font-weight:bold; margin-top:4px; }
+  .num-verde { color:var(--verde); } .num-rojo { color:var(--rojo); }
+
+  .mov { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--gris); }
+  .mov:last-child { border-bottom:none; }
+  .mov-info .mov-titulo { font-weight:bold; font-size:.95rem; }
+  .mov-info .mov-detalle { font-size:.8rem; color:var(--texto2); }
+  .mov-monto { font-weight:bold; font-size:1rem; white-space:nowrap; }
+  .mov-borrar { background:none; border:none; color:#bbb; font-size:1.1rem; cursor:pointer; padding:4px 0 4px 10px; }
+  .fecha-grupo { font-size:.85rem; font-weight:bold; color:var(--texto2); margin:14px 0 4px; }
+
+  .modal-fondo { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:20; align-items:flex-end; }
+  .modal-fondo.abierto { display:flex; }
+  .modal { background:#fff; width:100%; max-width:600px; margin:0 auto; border-radius:16px 16px 0 0; padding:20px 16px 24px; }
+  .modal h2 { font-size:1.1rem; margin-bottom:14px; }
+  .modal label { display:block; font-size:.85rem; color:var(--texto2); margin:10px 0 4px; }
+  .modal input, .modal select { width:100%; padding:12px; border:1px solid var(--borde); border-radius:10px; font-size:1.05rem; }
+  .modal .fila-botones { margin-top:18px; }
+
+  .vacio { text-align:center; color:var(--texto2); padding:30px 10px; font-size:.95rem; }
+</style>
+</head>
+<body>
+<div id="urlNube" style="display:none">https://script.google.com/macros/s/AKfycbytbAf2cD-tC8fc0BkV5Mq32BqzwzgL24RFBCzOlJzo31aY6dSFmyRIFftvjA4qJiYQEg/exec</div>
+
+<div id="loginOverlay" style="position:fixed; inset:0; z-index:100; background:var(--verde); color:#fff; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px;">
+  <div style="font-size:2rem; font-weight:bold; margin-bottom:4px;">📦 Mi Bodega</div>
+  <div style="opacity:.85; margin-bottom:20px;">Inicia sesión para continuar</div>
+  <div style="background:#fff; color:var(--texto); border-radius:14px; padding:18px; width:100%; max-width:360px;">
+    <label style="font-size:.85rem;color:var(--texto2)">Usuario</label>
+    <input id="loginUser" class="buscador" placeholder="usuario" autocomplete="username">
+    <label style="font-size:.85rem;color:var(--texto2)">Contraseña</label>
+    <input id="loginPass" type="password" class="buscador" placeholder="contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')hacerLogin()">
+    <button class="boton boton-verde boton-grande" style="margin-bottom:0" onclick="hacerLogin()">Entrar</button>
+    <div id="loginError" style="color:var(--rojo); font-size:.9rem; margin-top:10px; display:none;">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
+
+<header>
+  <h1 id="tituloHeader">📦 Inventario</h1>
+  <div style="text-align:right;">
+    <div class="fecha" id="fechaHoy"></div>
+    <div class="fecha" id="estadoSync"></div>
+  </div>
+</header>
+
+<div class="tab-content activa" id="tab-inventario">
+  <div id="avisoCamas" style="display:none; position:fixed; top:58px; left:8px; right:8px; z-index:30; color:#fff; border-radius:12px; padding:14px; text-align:center; font-size:1.05rem; box-shadow:0 3px 10px rgba(0,0,0,.35);"></div>
+
+  <button class="boton boton-verde boton-grande" id="btnEscCamas" onclick="iniciarEscCamas('entrada')">📷 Escanear producto (entrada)</button>
+  <button class="boton boton-rojo-claro boton-grande" id="btnEscSalida" onclick="iniciarEscCamas('salida')">📦 Escanear despacho (salida)</button>
+  <button class="boton boton-naranja boton-grande" id="btnDespManual" onclick="abrirDespManual()">✏️ Escanear despacho manual</button>
+  <button class="boton boton-rojo boton-grande" id="btnDetEscCamas" style="display:none" onclick="detenerEscCamas()">Detener escáner</button>
+  <div id="camWrap" style="position:relative; display:none; margin-bottom:10px;">
+    <button onclick="detenerEscCamas()" title="Cerrar cámara" style="position:absolute; top:8px; right:8px; z-index:5; background:rgba(0,0,0,.65); color:#fff; border:none; border-radius:50%; width:44px; height:44px; font-size:1.5rem; line-height:1; cursor:pointer;">✕</button>
+    <div id="lectorCamas" style="border-radius:12px; overflow:hidden;"></div>
+  </div>
+
+  <div class="titulo-seccion">Camas disponibles por talla (− salida solo admin)</div>
+  <div id="stockTallas"></div>
+
+  <div class="titulo-seccion">Otros productos</div>
+  <input type="text" class="buscador" id="buscarProd" placeholder="🔍 Buscar producto..." oninput="renderInventario()">
+  <button class="boton boton-verde boton-grande" onclick="abrirModalProducto()">+ Nuevo producto</button>
+  <div id="listaProductos"></div>
+</div>
+
+<div class="tab-content" id="tab-trazabilidad">
+  <div class="tarjeta">
+    <div class="prod-nombre" style="margin-bottom:8px;">Filtrar por periodo</div>
+    <label style="font-size:.85rem;color:var(--texto2)">Desde</label>
+    <input type="date" class="buscador" id="trazDesde" onchange="renderTrazabilidad()">
+    <label style="font-size:.85rem;color:var(--texto2)">Hasta</label>
+    <input type="date" class="buscador" id="trazHasta" onchange="renderTrazabilidad()">
+    <input type="text" class="buscador" id="trazBuscar" placeholder="🔍 Buscar talla, guía o producto..." oninput="renderTrazabilidad()">
+    <button class="boton boton-gris boton-grande" style="margin-bottom:0" onclick="limpiarFiltroTraz()">Limpiar filtro</button>
+  </div>
+  <div id="trazResumen"></div>
+  <div class="titulo-seccion">Historial de camas (entradas / salidas)</div>
+  <div id="listaTerm"></div>
+  <div class="titulo-seccion">Historial de otros productos</div>
+  <div id="listaMovsInv"></div>
+</div>
+
+<div class="tab-content" id="tab-camas">
+  <div class="total-grande">
+    <div class="num" id="camasHoy">0</div>
+    <div class="etq">CAMAS HECHAS HOY</div>
+  </div>
+  <button class="boton boton-verde boton-grande" onclick="abrirModalProduccion()">+ Registrar camas hechas</button>
+  <button class="boton boton-gris boton-grande" onclick="abrirModalTrabajador()">👷 Agregar trabajador</button>
+
+  <div class="titulo-seccion">Producido del mes (para pagos)</div>
+  <div class="tarjeta">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <button class="boton boton-gris" style="padding:6px 16px;" onclick="cambiarMes(-1)">◀</button>
+      <b id="mesActual"></b>
+      <button class="boton boton-gris" style="padding:6px 16px;" onclick="cambiarMes(1)">▶</button>
+    </div>
+    <div id="resumenMes"></div>
+  </div>
+  <button class="boton boton-claro boton-grande" onclick="exportarProducido()">⬇️ Exportar producido del mes (Excel)</button>
+
+  <div class="titulo-seccion">Historial del mes</div>
+  <div id="listaProduccion"></div>
+</div>
+
+<div class="tab-content" id="tab-caja">
+  <div class="total-grande">
+    <div class="num" id="saldoCaja">$0</div>
+    <div class="etq">SALDO EN CAJA</div>
+  </div>
+  <div class="resumen-caja">
+    <div class="caja-box"><div class="etq">Entradas hoy</div><div class="num num-verde" id="entradasHoy">$0</div></div>
+    <div class="caja-box"><div class="etq">Salidas hoy</div><div class="num num-rojo" id="salidasHoy">$0</div></div>
+    <div class="caja-box"><div class="etq">Saldo hoy</div><div class="num" id="saldoHoy">$0</div></div>
+  </div>
+  <div class="fila-botones" style="margin-bottom:12px;">
+    <button class="boton boton-verde" onclick="abrirModalCaja('entrada')">+ Entrada</button>
+    <button class="boton boton-rojo" onclick="abrirModalCaja('salida')">− Salida</button>
+  </div>
+  <div id="listaCaja"></div>
+</div>
+
+<div class="tab-content" id="tab-devol">
+  <div class="total-grande">
+    <div class="num" id="totalDevolMes">0</div>
+    <div class="etq" id="etqDevolMes">DEVOLUCIONES ESTE MES</div>
+  </div>
+  <button class="boton boton-verde boton-grande" id="btnEscDev" onclick="iniciarEscDev()">📷 Escanear guía con la cámara</button>
+  <button class="boton boton-rojo boton-grande" id="btnDetEscDev" style="display:none" onclick="detenerEscDev()">Detener escáner</button>
+  <div id="camWrapDev" style="position:relative; display:none; margin-bottom:10px;">
+    <button onclick="detenerEscDev()" title="Cerrar cámara" style="position:absolute; top:8px; right:8px; z-index:5; background:rgba(0,0,0,.65); color:#fff; border:none; border-radius:50%; width:44px; height:44px; font-size:1.5rem; line-height:1; cursor:pointer;">✕</button>
+    <div id="lectorDev" style="border-radius:12px; overflow:hidden;"></div>
+  </div>
+  <div class="tarjeta">
+    <input type="text" class="buscador" id="devolCodigo" placeholder="O escribe / pega el número de la guía" onkeydown="if(event.key==='Enter')devolManual()">
+    <button class="boton boton-claro boton-grande" style="margin-bottom:0" onclick="devolManual()">+ Registrar a mano</button>
+  </div>
+  <div id="avisoDevol" style="display:none; color:#fff; border-radius:12px; padding:14px; text-align:center; margin:10px 0; font-size:1.05rem;"></div>
+
+  <div class="titulo-seccion">Historial por mes</div>
+  <div class="tarjeta" style="display:flex; justify-content:space-between; align-items:center;">
+    <button class="boton boton-gris" style="padding:6px 16px;" onclick="cambiarMesDev(-1)">◀</button>
+    <b id="mesDevol"></b>
+    <button class="boton boton-gris" style="padding:6px 16px;" onclick="cambiarMesDev(1)">▶</button>
+  </div>
+  <div id="listaDevol"></div>
+</div>
+
+<div class="tab-content" id="tab-datos">
+  <div class="tarjeta">
+    <div class="prod-nombre" style="margin-bottom:8px;">👤 Usuarios y contraseñas (login)</div>
+    <p style="font-size:.9rem; color:var(--texto2); margin-bottom:12px;">Define el acceso. El <b>admin</b> ve todo. El <b>trabajador</b> solo puede registrar entradas, salidas, devoluciones y caja.</p>
+    <label style="font-size:.85rem;color:var(--texto2)">Usuario admin</label>
+    <input type="text" class="buscador" id="setAdminUser" placeholder="admin">
+    <label style="font-size:.85rem;color:var(--texto2)">Contraseña admin</label>
+    <input type="text" class="buscador" id="setAdminPass" placeholder="contraseña admin">
+    <label style="font-size:.85rem;color:var(--texto2)">Usuario trabajador</label>
+    <input type="text" class="buscador" id="setTrabUser" placeholder="bodega">
+    <label style="font-size:.85rem;color:var(--texto2)">Contraseña trabajador</label>
+    <input type="text" class="buscador" id="setTrabPass" placeholder="contraseña trabajador">
+    <button class="boton boton-verde boton-grande" style="margin-bottom:0" onclick="guardarUsuarios()">Guardar usuarios</button>
+  </div>
+  <div class="tarjeta">
+    <div class="prod-nombre" style="margin-bottom:8px;">🏷️ Códigos QR de camas</div>
+    <p style="font-size:.9rem; color:var(--texto2); margin-bottom:12px;">Imprime los códigos QR (uno por talla) para pegarlos en producción y en la mesa de despacho.</p>
+    <button class="boton boton-claro boton-grande" style="margin-bottom:0" onclick="abrirModalCodigos()">Imprimir códigos QR</button>
+  </div>
+  <div class="tarjeta">
+    <div class="prod-nombre" style="margin-bottom:8px;">☁️ Nube (Google Sheets)</div>
+    <p style="font-size:.9rem; color:var(--texto2); margin-bottom:12px;">Pega aquí la URL de tu Web App de Google y toca Conectar.</p>
+    <input type="url" class="buscador" id="urlSync" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="boton boton-verde boton-grande" onclick="conectarNube()">Conectar</button>
+    <button class="boton boton-claro boton-grande" style="margin-bottom:0" onclick="sincronizarAhora()">🔄 Sincronizar ahora</button>
+  </div>
+  <div class="tarjeta">
+    <div class="prod-nombre" style="margin-bottom:8px;">Respaldo de datos</div>
+    <p style="font-size:.9rem; color:var(--texto2); margin-bottom:12px;">Haz un respaldo de vez en cuando por seguridad.</p>
+    <button class="boton boton-claro boton-grande" onclick="exportarDatos()">⬇️ Descargar respaldo</button>
+    <button class="boton boton-gris boton-grande" onclick="document.getElementById('archivoImportar').click()">⬆️ Restaurar respaldo</button>
+    <input type="file" id="archivoImportar" accept=".json" style="display:none" onchange="importarDatos(event)">
+    <button class="boton boton-rojo-claro boton-grande" style="margin-bottom:0" onclick="borrarTodo()">🗑️ Borrar todos los datos</button>
+  </div>
+</div>
+
+<nav>
+  <button class="activa" id="nav-inventario" onclick="irTab('inventario')"><span class="icono">📦</span>Inventario</button>
+  <button id="nav-trazabilidad" onclick="irTab('trazabilidad')"><span class="icono">🔎</span>Trazab.</button>
+  <button id="nav-camas" onclick="irTab('camas')"><span class="icono">🛏️</span>Camas</button>
+  <button id="nav-caja" onclick="irTab('caja')"><span class="icono">💵</span>Caja</button>
+  <button id="nav-devol" onclick="irTab('devol')"><span class="icono">🔄</span>Devol.</button>
+  <button id="nav-datos" onclick="irTab('datos')"><span class="icono">⚙️</span>Datos</button>
+</nav>
+
+<div class="modal-fondo" id="modalProducto">
+  <div class="modal">
+    <h2 id="tituloModalProducto">Nuevo producto</h2>
+    <label>Nombre del producto</label>
+    <input type="text" id="prodNombre" placeholder="Ej: Arroz x 500g">
+    <label>Unidad (opcional)</label>
+    <input type="text" id="prodUnidad" placeholder="Ej: unidades, cajas, bultos">
+    <label>Cantidad inicial</label>
+    <input type="number" id="prodStock" placeholder="0" min="0" inputmode="numeric">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-rojo-claro" id="btnEliminarProd" style="display:none" onclick="eliminarProducto()">Eliminar</button>
+      <button class="boton boton-verde" onclick="guardarProducto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalMov">
+  <div class="modal">
+    <h2 id="tituloModalMov">Entrada</h2>
+    <label>Cantidad</label>
+    <input type="number" id="movCantidad" placeholder="0" min="1" inputmode="numeric">
+    <label>Nota (opcional)</label>
+    <input type="text" id="movNota" placeholder="Ej: compra a proveedor">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-verde" id="btnGuardarMov" onclick="guardarMovimiento()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalProduccion">
+  <div class="modal">
+    <h2>Registrar camas hechas</h2>
+    <label>Trabajador</label>
+    <select id="prodTrabajador"></select>
+    <label>Talla / tamaño</label>
+    <input type="text" id="prodTalla" list="listaTallas" placeholder="Ej: 140x190">
+    <datalist id="listaTallas"></datalist>
+    <label>Cantidad de camas</label>
+    <input type="number" id="prodCamasCant" placeholder="0" min="1" inputmode="numeric">
+    <label>Fecha</label>
+    <input type="date" id="prodFecha">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-verde" onclick="guardarProduccion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalConfirmDev">
+  <div class="modal">
+    <h2>¿Registrar esta devolución?</h2>
+    <div id="confirmDevTexto" style="text-align:center; font-size:1.3rem; margin:8px 0 4px;"></div>
+    <div class="fila-botones">
+      <button class="boton boton-rojo-claro" onclick="reintentarDev()">🔄 No, escanear de nuevo</button>
+      <button class="boton boton-verde" onclick="aceptarDev()">✅ Sí, registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalConfirmEsc">
+  <div class="modal">
+    <h2>¿Es correcto?</h2>
+    <div id="confirmEscTipo" style="text-align:center; font-weight:bold; font-size:1.05rem;"></div>
+    <div id="confirmEscTexto" style="text-align:center; font-size:1.4rem; margin:8px 0 4px;"></div>
+    <div class="fila-botones">
+      <button class="boton boton-rojo-claro" onclick="reintentarConfirmEsc()">🔄 No, escanear de nuevo</button>
+      <button class="boton boton-verde" onclick="aceptarConfirmEsc()">✅ Sí, correcto</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalDespManual">
+  <div class="modal">
+    <h2>✏️ Despacho manual</h2>
+    <p style="font-size:.85rem;color:var(--texto2);margin-bottom:10px;">Elige la talla y la cantidad de camas que salieron. Se restarán del inventario disponible.</p>
+    <label>Talla</label>
+    <select id="despTalla" onchange="actualizarDispManual()"></select>
+    <div id="despDisp" style="font-size:.9rem;color:var(--texto2);margin:4px 0 8px;"></div>
+    <label>Cantidad de unidades</label>
+    <input type="number" id="despCant" placeholder="0" min="1" inputmode="numeric">
+    <label>Guía / nota (opcional)</label>
+    <input type="text" id="despGuia" placeholder="Ej: número de guía o cliente">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-naranja" onclick="confirmarDespManual()">Restar del inventario</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalCodigos">
+  <div class="modal" style="max-height:90vh; overflow:auto;">
+    <h2>Códigos QR de tallas</h2>
+    <p style="font-size:.85rem;color:var(--texto2);">Imprime esta hoja una sola vez. Pega cada QR donde escaneas esa talla. Cada escaneo suma 1 cama de esa talla.</p>
+    <div id="gridCodigos" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:14px 0;"></div>
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cerrar</button>
+      <button class="boton boton-verde" onclick="imprimirCodigos()">Imprimir / Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalTrabajador">
+  <div class="modal">
+    <h2 id="tituloModalTrabajador">Nuevo trabajador</h2>
+    <label>Nombre del trabajador</label>
+    <input type="text" id="trabNombre" placeholder="Ej: Carlos Pérez">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-rojo-claro" id="btnEliminarTrab" style="display:none" onclick="eliminarTrabajador()">Eliminar</button>
+      <button class="boton boton-verde" onclick="guardarTrabajador()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalClave">
+  <div class="modal">
+    <h2>🔒 Sección de administrador</h2>
+    <label>Escribe la contraseña para entrar</label>
+    <input type="password" id="claveInput" placeholder="Contraseña" onkeydown="if(event.key==='Enter')verificarClave()">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-verde" onclick="verificarClave()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modalCaja">
+  <div class="modal">
+    <h2 id="tituloModalCaja">Entrada de dinero</h2>
+    <label>Monto ($)</label>
+    <input type="number" id="cajaMonto" placeholder="0" min="0" inputmode="decimal">
+    <label>Concepto</label>
+    <input type="text" id="cajaConcepto" placeholder="Ej: venta del día, pago de flete">
+    <div class="fila-botones">
+      <button class="boton boton-gris" onclick="cerrarModales()">Cancelar</button>
+      <button class="boton boton-verde" id="btnGuardarCaja" onclick="guardarCaja()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLAVE = 'miBodegaDatos';
+const URL_NUBE_FIJA = (function() {
+  const el = document.getElementById('urlNube');
+  const v = el ? el.textContent.trim() : '';
+  return v.indexOf('https://') === 0 ? v : '';
+})();
+function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+let datos = { productos: [], movimientos: [], trabajadores: [], produccion: [], terminadas: [], caja: [], devoluciones: [], nombresTallas: {}, clave: '', claveCaja: '', usuarioAdmin: 'admin', usuarioTrab: 'bodega', claveTrab: '' };
+
+function cargar() {
+  try {
+    const d = lsGet(CLAVE);
+    if (d) {
+      const obj = JSON.parse(d);
+      datos.productos = obj.productos || [];
+      datos.movimientos = obj.movimientos || [];
+      datos.trabajadores = obj.trabajadores || [];
+      datos.produccion = obj.produccion || [];
+      datos.terminadas = obj.terminadas || [];
+      datos.caja = obj.caja || [];
+      datos.devoluciones = obj.devoluciones || [];
+      datos.nombresTallas = obj.nombresTallas || {};
+      datos.clave = obj.clave || '';
+      datos.claveCaja = obj.claveCaja || '';
+      datos.usuarioAdmin = obj.usuarioAdmin || 'admin';
+      datos.usuarioTrab = obj.usuarioTrab || 'bodega';
+      datos.claveTrab = obj.claveTrab || '';
+      datos.updatedAt = obj.updatedAt || 0;
+    }
+  } catch(e) {}
+  migrarEscaneadas();
+}
+function migrarEscaneadas() {
+  const viejas = (datos.produccion || []).filter(p => p.trabajadorId === 'scan');
+  if (!viejas.length) return;
+  datos.terminadas = datos.terminadas || [];
+  viejas.forEach(p => {
+    for (let i = 0; i < (p.cantidad || 1); i++) {
+      datos.terminadas.push({ id: nuevoId(), talla: p.talla, tipo: 'entra', fecha: p.fecha, hora: p.hora || '' });
+    }
+  });
+  datos.produccion = datos.produccion.filter(p => p.trabajadorId !== 'scan');
+  lsSet(CLAVE, JSON.stringify(datos));
+}
+function guardar() {
+  datos.updatedAt = Date.now();
+  lsSet(CLAVE, JSON.stringify(datos));
+  programarPush();
+}
+function nuevoId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function hoyStr() { return new Date().toLocaleDateString('es-CO', {year:'numeric', month:'2-digit', day:'2-digit'}); }
+function plata(n) { return '$' + Number(n).toLocaleString('es-CO'); }
+function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+const titulos = { inventario:'📦 Inventario', trazabilidad:'🔎 Trazabilidad de inventario', camas:'🛏️ Producción de camas', terminadas:'✅ Camas listas', caja:'💵 Caja', devol:'🔄 Devoluciones', datos:'⚙️ Datos' };
+let adminOk = false;
+let rol = null; // 'admin' | 'trabajador'
+let datosDesbloqueado = false; // la pestaña Datos pide contraseña 9015
+const CLAVE_DATOS = '9015';
+
+function hacerLogin() {
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value;
+  const adminU = (datos.usuarioAdmin || 'admin').toLowerCase();
+  const adminP = datos.clave || '';
+  const trabU = (datos.usuarioTrab || 'bodega').toLowerCase();
+  const trabP = datos.claveTrab || '';
+  if (!adminP) { entrarComo('admin'); return; } // primer uso: aún no hay contraseña admin
+  if (u === adminU && p === adminP) { entrarComo('admin'); return; }
+  if (trabP && u === trabU && p === trabP) { entrarComo('trabajador'); return; }
+  document.getElementById('loginError').style.display = 'block';
+}
+function entrarComo(r) {
+  rol = r; adminOk = (r === 'admin');
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginOverlay').style.display = 'none';
+  aplicarPermisos();
+  irTab('inventario');
+}
+function aplicarPermisos() {
+  ['nav-trazabilidad', 'nav-camas', 'nav-datos'].forEach(function(id) {
+    const b = document.getElementById(id);
+    if (b) b.style.display = (rol === 'admin') ? '' : 'none';
+  });
+  if (rol === 'admin') {
+    const set = function(id, v) { const e = document.getElementById(id); if (e) e.value = v; };
+    set('setAdminUser', datos.usuarioAdmin || 'admin');
+    set('setAdminPass', datos.clave || '');
+    set('setTrabUser', datos.usuarioTrab || 'bodega');
+    set('setTrabPass', datos.claveTrab || '');
+  }
+}
+function cerrarSesion() {
+  rol = null; adminOk = false;
+  if (typeof escCamas !== 'undefined' && escCamas) detenerEscCamas();
+  if (typeof escDev !== 'undefined' && escDev) detenerEscDev();
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+function guardarUsuarios() {
+  const au = document.getElementById('setAdminUser').value.trim();
+  const ap = document.getElementById('setAdminPass').value.trim();
+  const tu = document.getElementById('setTrabUser').value.trim();
+  const tp = document.getElementById('setTrabPass').value.trim();
+  if (!au || !ap) { alert('El usuario y la contraseña de administrador son obligatorios.'); return; }
+  datos.usuarioAdmin = au; datos.clave = ap;
+  datos.usuarioTrab = tu || 'bodega'; datos.claveTrab = tp;
+  guardar();
+  alert('Usuarios guardados.');
+}
+
+function irTab(nombre) {
+  // La pestaña Datos pide contraseña de administrador
+  if (nombre === 'datos' && !datosDesbloqueado) {
+    const inp = document.getElementById('claveInput');
+    if (inp) inp.value = '';
+    document.getElementById('modalClave').classList.add('abierto');
+    setTimeout(function(){ if (inp) inp.focus(); }, 100);
+    return;
+  }
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('activa'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('activa'));
+  document.getElementById('tab-' + nombre).classList.add('activa');
+  document.getElementById('nav-' + nombre).classList.add('activa');
+  document.getElementById('tituloHeader').textContent = titulos[nombre];
+  if (nombre !== 'inventario' && typeof escCamas !== 'undefined' && escCamas) detenerEscCamas();
+  if (nombre !== 'devol' && typeof escDev !== 'undefined' && escDev) detenerEscDev();
+}
+function cerrarModales() { document.querySelectorAll('.modal-fondo').forEach(m => m.classList.remove('abierto')); }
+document.querySelectorAll('.modal-fondo').forEach(m => m.addEventListener('click', e => { if (e.target === m) cerrarModales(); }));
+
+let prodEditando = null, movProducto = null, movTipo = null;
+
+function renderInventario() {
+  // Resumen de camas listas disponibles (viene de la pestaña Listas)
+  const rc = document.getElementById('resumenCamasInv');
+  if (rc && typeof stockTalla === 'function') {
+    const total = TALLAS_MASCOTA.reduce((s,t) => s + stockTalla(t), 0);
+    const detalle = TALLAS_MASCOTA.filter(t => stockTalla(t) > 0).map(t => nombreTalla(t) + ': ' + stockTalla(t)).join(' · ');
+    rc.innerHTML = `<div class="total-grande"><div class="num">${total}</div><div class="etq">CAMAS DISPONIBLES PARA VENDER${detalle ? '<br>' + detalle : ''}</div></div>`;
+  }
+  const filtro = document.getElementById('buscarProd').value.toLowerCase();
+  const cont = document.getElementById('listaProductos');
+  const prods = datos.productos.filter(p => p.nombre.toLowerCase().includes(filtro));
+  if (!prods.length) {
+    cont.innerHTML = '<div class="vacio">' + (datos.productos.length ? 'No se encontró ese producto.' : 'Aún no tienes productos.<br>Toca "+ Nuevo producto" para empezar.') + '</div>';
+  } else {
+    cont.innerHTML = prods.map(p => `
+      <div class="tarjeta">
+        <div class="prod-fila">
+          <div>
+            <div class="prod-nombre">${esc(p.nombre)}</div>
+            <div class="prod-unidad">${esc(p.unidad || 'unidades')}</div>
+            <button class="enlace-editar" onclick="abrirModalProducto('${p.id}')">Editar</button>
+          </div>
+          <div class="prod-stock ${p.stock <= 5 ? 'stock-bajo' : ''}">${p.stock}</div>
+        </div>
+        <div class="prod-acciones">
+          <button class="boton boton-claro" onclick="abrirModalMov('${p.id}','entrada')">+ Entrada</button>
+          <button class="boton boton-rojo-claro" onclick="abrirModalMov('${p.id}','salida')">− Salida</button>
+        </div>
+      </div>`).join('');
+  }
+  if (typeof renderTrazabilidad === 'function') renderTrazabilidad();
+}
+
+function abrirModalProducto(id) {
+  prodEditando = id || null;
+  const p = id ? datos.productos.find(x => x.id === id) : null;
+  document.getElementById('tituloModalProducto').textContent = p ? 'Editar producto' : 'Nuevo producto';
+  document.getElementById('prodNombre').value = p ? p.nombre : '';
+  document.getElementById('prodUnidad').value = p ? (p.unidad || '') : '';
+  document.getElementById('prodStock').value = p ? p.stock : '';
+  document.getElementById('btnEliminarProd').style.display = p ? 'block' : 'none';
+  document.getElementById('modalProducto').classList.add('abierto');
+}
+function guardarProducto() {
+  const nombre = document.getElementById('prodNombre').value.trim();
+  if (!nombre) { alert('Escribe el nombre del producto.'); return; }
+  const unidad = document.getElementById('prodUnidad').value.trim();
+  const stock = Math.max(0, parseInt(document.getElementById('prodStock').value) || 0);
+  if (prodEditando) {
+    const p = datos.productos.find(x => x.id === prodEditando);
+    p.nombre = nombre; p.unidad = unidad; p.stock = stock;
+  } else {
+    datos.productos.push({ id: nuevoId(), nombre, unidad, stock });
+  }
+  guardar(); cerrarModales(); renderInventario();
+}
+function eliminarProducto() {
+  const p = datos.productos.find(x => x.id === prodEditando);
+  if (!p) return;
+  if (!confirm('¿Seguro que quieres ELIMINAR "' + p.nombre + '" del inventario?\nEsta acción no se puede deshacer.')) return;
+  const palabra = prompt('Para confirmar, escribe la palabra:  eliminar');
+  if (palabra === null) return;
+  if (palabra.trim().toLowerCase() !== 'eliminar') { alert('No se eliminó nada. Debes escribir exactamente: eliminar'); return; }
+  // Queda registrado en el historial con fecha y hora
+  datos.movimientos.unshift({
+    id: nuevoId(), producto: p.nombre, tipo: 'eliminado', cantidad: p.stock || 0,
+    nota: 'Producto eliminado del inventario',
+    fecha: hoyStr(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  datos.productos = datos.productos.filter(x => x.id !== prodEditando);
+  guardar(); cerrarModales(); renderInventario();
+}
+
+function abrirModalMov(id, tipo) {
+  movProducto = id; movTipo = tipo;
+  const p = datos.productos.find(x => x.id === id);
+  document.getElementById('tituloModalMov').textContent = (tipo === 'entrada' ? 'Entrada: ' : 'Salida: ') + p.nombre;
+  document.getElementById('movCantidad').value = '';
+  document.getElementById('movNota').value = '';
+  document.getElementById('btnGuardarMov').className = 'boton ' + (tipo === 'entrada' ? 'boton-verde' : 'boton-rojo');
+  document.getElementById('modalMov').classList.add('abierto');
+  setTimeout(() => document.getElementById('movCantidad').focus(), 100);
+}
+function guardarMovimiento() {
+  const cant = parseInt(document.getElementById('movCantidad').value);
+  if (!cant || cant <= 0) { alert('Escribe una cantidad válida.'); return; }
+  const p = datos.productos.find(x => x.id === movProducto);
+  if (movTipo === 'salida' && cant > p.stock) {
+    if (!confirm('Vas a sacar más de lo que hay en stock (' + p.stock + '). ¿Continuar?')) return;
+  }
+  p.stock = movTipo === 'entrada' ? p.stock + cant : Math.max(0, p.stock - cant);
+  datos.movimientos.unshift({
+    id: nuevoId(), producto: p.nombre, tipo: movTipo, cantidad: cant,
+    nota: document.getElementById('movNota').value.trim(),
+    fecha: hoyStr(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  if (datos.movimientos.length > 500) datos.movimientos.length = 500;
+  guardar(); cerrarModales(); renderInventario();
+}
+
+let trabajadorEditando = null;
+let mesVista = (() => { const h = new Date(); return { y: h.getFullYear(), m: h.getMonth() }; })();
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function fechaISOHoy() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtFecha(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('es-CO', {weekday:'long', day:'numeric', month:'long'});
+}
+
+function renderCamas() {
+  const hoyISO = fechaISOHoy();
+  document.getElementById('camasHoy').textContent =
+    (datos.produccion || []).filter(p => p.fecha === hoyISO).reduce((s,p) => s + p.cantidad, 0);
+  document.getElementById('mesActual').textContent = MESES[mesVista.m] + ' ' + mesVista.y;
+
+  const claveMes = mesVista.y + '-' + String(mesVista.m+1).padStart(2,'0');
+  const delMes = (datos.produccion || []).filter(p => p.fecha && p.fecha.startsWith(claveMes));
+
+  const cont = document.getElementById('resumenMes');
+  const totalMes = delMes.reduce((s,p) => s + p.cantidad, 0);
+  let html = '';
+  if ((datos.trabajadores || []).length) {
+    html += datos.trabajadores.map(t => {
+      const suyas = delMes.filter(p => p.trabajadorId === t.id);
+      const tot = suyas.reduce((s,p) => s + p.cantidad, 0);
+      const porTalla = {};
+      suyas.forEach(p => { const k = p.talla || 'sin talla'; porTalla[k] = (porTalla[k] || 0) + p.cantidad; });
+      const detalleTallas = Object.keys(porTalla).map(k => esc(k) + ': ' + porTalla[k]).join(' - ');
+      return `<div class="mov">
+        <div class="mov-info">
+          <div class="mov-titulo">${esc(t.nombre)} <button class="enlace-editar" onclick="abrirModalTrabajador('${t.id}')">editar</button></div>
+          ${detalleTallas ? '<div class="mov-detalle">' + detalleTallas + '</div>' : ''}
+        </div>
+        <div class="mov-monto">${tot} camas</div>
+      </div>`;
+    }).join('');
+  }
+  html += `<div class="mov">
+      <div class="mov-info"><div class="mov-titulo">TOTAL DEL MES</div></div>
+      <div class="mov-monto num-verde">${totalMes} camas</div>
+    </div>`;
+  if (!(datos.trabajadores || []).length) {
+    html = '<div class="vacio">Agrega tus trabajadores con el botón 👷<br>y registra las camas que cosen para pagarles.</div>';
+  }
+  cont.innerHTML = html;
+
+  const hist = document.getElementById('listaProduccion');
+  if (!delMes.length) { hist.innerHTML = '<div class="vacio">Sin registros este mes.</div>'; return; }
+  const orden = [...delMes].sort((a,b) => b.fecha.localeCompare(a.fecha));
+  const grupos = {};
+  orden.forEach(p => { (grupos[p.fecha] = grupos[p.fecha] || []).push(p); });
+  hist.innerHTML = Object.keys(grupos).map(f => {
+    const movs = grupos[f];
+    const tot = movs.reduce((s,p) => s + p.cantidad, 0);
+    return `<div class="fecha-grupo">${fmtFecha(f)} - ${tot} camas</div><div class="tarjeta">` +
+      movs.map(p => `<div class="mov">
+        <div class="mov-info">
+          <div class="mov-titulo">${esc(p.trabajador)}</div>
+          <div class="mov-detalle">${p.talla ? 'Talla ' + esc(p.talla) + ' - ' : ''}${p.hora || ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <div class="mov-monto num-verde">+${p.cantidad}</div>
+          <button class="mov-borrar" onclick="borrarProduccion('${p.id}')">x</button>
+        </div>
+      </div>`).join('') + '</div>';
+  }).join('');
+}
+
+function exportarProducido() {
+  const claveMes = mesVista.y + '-' + String(mesVista.m+1).padStart(2,'0');
+  const delMes = (datos.produccion || []).filter(p => p.fecha && p.fecha.startsWith(claveMes));
+  const mapa = {};
+  delMes.forEach(p => { const k = p.trabajador + '||' + (p.talla || ''); mapa[k] = (mapa[k] || 0) + p.cantidad; });
+  const filas = [['Trabajador', 'Talla', 'Camas']];
+  let total = 0;
+  Object.keys(mapa).sort().forEach(k => { const partes = k.split('||'); filas.push([partes[0], partes[1], mapa[k]]); total += mapa[k]; });
+  filas.push(['TOTAL', '', total]);
+  const csv = filas.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'producido-' + claveMes + '.csv';
+  a.click();
+}
+function cambiarMes(delta) {
+  mesVista.m += delta;
+  if (mesVista.m < 0) { mesVista.m = 11; mesVista.y--; }
+  if (mesVista.m > 11) { mesVista.m = 0; mesVista.y++; }
+  renderCamas();
+}
+
+const TALLAS_COMUNES = ['90x190', '100x190', '120x190', '140x190', '160x190', '200x200'];
+function abrirModalProduccion() {
+  if (!(datos.trabajadores || []).length) { alert('Primero agrega un trabajador con el botón.'); return; }
+  document.getElementById('prodTrabajador').innerHTML =
+    datos.trabajadores.map(t => `<option value="${t.id}">${esc(t.nombre)}</option>`).join('');
+  const usadas = [...new Set((datos.produccion || []).map(p => p.talla).filter(Boolean))];
+  const tallas = [...new Set([...usadas, ...TALLAS_COMUNES])];
+  document.getElementById('listaTallas').innerHTML = tallas.map(t => `<option value="${esc(t)}">`).join('');
+  document.getElementById('prodTalla').value = '';
+  document.getElementById('prodCamasCant').value = '';
+  document.getElementById('prodFecha').value = fechaISOHoy();
+  document.getElementById('modalProduccion').classList.add('abierto');
+  setTimeout(() => document.getElementById('prodTalla').focus(), 100);
+}
+function guardarProduccion() {
+  const talla = document.getElementById('prodTalla').value.trim();
+  if (!talla) { alert('Escribe la talla o tamaño de la cama.'); return; }
+  const cant = parseInt(document.getElementById('prodCamasCant').value);
+  if (!cant || cant <= 0) { alert('Escribe una cantidad válida.'); return; }
+  const fecha = document.getElementById('prodFecha').value || fechaISOHoy();
+  const tid = document.getElementById('prodTrabajador').value;
+  const t = datos.trabajadores.find(x => x.id === tid);
+  datos.produccion = datos.produccion || [];
+  datos.produccion.unshift({
+    id: nuevoId(), trabajadorId: tid, trabajador: t.nombre, talla, cantidad: cant, fecha,
+    hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  guardar(); cerrarModales(); renderCamas();
+}
+function borrarProduccion(id) {
+  if (!confirm('¿Borrar este registro de producción?')) return;
+  datos.produccion = datos.produccion.filter(p => p.id !== id);
+  guardar(); renderCamas();
+}
+
+function abrirModalTrabajador(id) {
+  trabajadorEditando = id || null;
+  const t = id ? datos.trabajadores.find(x => x.id === id) : null;
+  document.getElementById('tituloModalTrabajador').textContent = t ? 'Editar trabajador' : 'Nuevo trabajador';
+  document.getElementById('trabNombre').value = t ? t.nombre : '';
+  document.getElementById('btnEliminarTrab').style.display = t ? 'block' : 'none';
+  document.getElementById('modalTrabajador').classList.add('abierto');
+}
+function guardarTrabajador() {
+  const nombre = document.getElementById('trabNombre').value.trim();
+  if (!nombre) { alert('Escribe el nombre del trabajador.'); return; }
+  datos.trabajadores = datos.trabajadores || [];
+  if (trabajadorEditando) {
+    const t = datos.trabajadores.find(x => x.id === trabajadorEditando);
+    t.nombre = nombre;
+    (datos.produccion || []).forEach(p => { if (p.trabajadorId === t.id) p.trabajador = nombre; });
+  } else {
+    datos.trabajadores.push({ id: nuevoId(), nombre });
+  }
+  guardar(); cerrarModales(); renderCamas();
+}
+function eliminarTrabajador() {
+  if (!confirm('¿Eliminar este trabajador? Su historial se conserva.')) return;
+  datos.trabajadores = datos.trabajadores.filter(t => t.id !== trabajadorEditando);
+  guardar(); cerrarModales(); renderCamas();
+}
+
+const TALLAS_MASCOTA = ['S', 'M', 'L', 'XL', 'PREMIUM-L', 'PREMIUM-XL'];
+function nombreTalla(t) {
+  if (datos.nombresTallas && datos.nombresTallas[t]) return datos.nombresTallas[t];
+  const m = { 'S':'S', 'M':'M', 'L':'L', 'XL':'XL', 'PREMIUM-L':'Premium L', 'PREMIUM-XL':'Premium XL' };
+  return m[t] || t;
+}
+function renombrarTalla(t) {
+  if (!exigeAdmin()) return;
+  const nuevo = prompt('Escribe el nombre para esta cama:', nombreTalla(t));
+  if (nuevo === null) return;
+  const v = nuevo.trim();
+  datos.nombresTallas = datos.nombresTallas || {};
+  if (v) datos.nombresTallas[t] = v; else delete datos.nombresTallas[t];
+  guardar(); renderTerminadas(); renderInventario();
+}
+function urlQR(talla) {
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent('CAMA-' + talla);
+}
+function abrirModalCodigos() {
+  document.getElementById('gridCodigos').innerHTML = TALLAS_MASCOTA.map(t =>
+    `<div style="text-align:center;border:1px solid var(--borde);border-radius:10px;padding:10px;">
+       <img src="${urlQR(t)}" width="150" height="150" alt="QR ${t}">
+       <div style="font-size:1.2rem;font-weight:bold;margin-top:4px;">CAMA ${nombreTalla(t)}</div>
+     </div>`).join('');
+  document.getElementById('modalCodigos').classList.add('abierto');
+}
+function imprimirCodigos() {
+  const tarjetas = TALLAS_MASCOTA.map(t =>
+    '<div style="display:inline-block;text-align:center;margin:16px;page-break-inside:avoid;">' +
+    '<img src="' + urlQR(t) + '" width="240" height="240">' +
+    '<div style="font-size:2rem;font-weight:bold;font-family:sans-serif;">CAMA ' + nombreTalla(t) + '</div></div>'
+  ).join('');
+  const w = window.open('', '_blank');
+  w.document.title = 'Códigos QR de tallas';
+  w.document.body.style.textAlign = 'center';
+  w.document.body.innerHTML =
+    '<h2 style="font-family:sans-serif;">Códigos QR de tallas - Camas mascota</h2>' + tarjetas;
+  setTimeout(() => { w.print(); }, 800);
+}
+
+let escCamas = null, escPausado = false;
+let modoEsc = 'entrada', guiaActual = '', ultEscTalla = '', ultEscTiempo = 0;
+let avisoTimer = null;
+function avisoCamas(html, color) {
+  const av = document.getElementById('avisoCamas');
+  av.innerHTML = html; av.style.background = color; av.style.display = 'block';
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(function() { av.style.display = 'none'; }, 3500);
+}
+function ocultarAviso() {
+  clearTimeout(avisoTimer);
+  const av = document.getElementById('avisoCamas');
+  if (av) av.style.display = 'none';
+}
+function reanudarEsc() {
+  escPausado = false;
+  try { if (escCamas) escCamas.resume(); } catch(e) {}
+}
+function stockTalla(talla) {
+  const n = (datos.terminadas || []).reduce((s,m) => s + (m.talla === talla ? (m.tipo === 'sale' ? -(m.cant || 1) : (m.cant || 1)) : 0), 0);
+  return Math.max(0, n); // nunca queda negativo
+}
+// El control de acceso ahora lo da el login por rol; estas acciones quedan permitidas según la pestaña
+function exigeAdmin() { return true; }
+// Entrada (+1) por escaneo, o salida (-1) solo admin
+function movTerminada(talla, tipo) {
+  if (!TALLAS_MASCOTA.includes(talla)) return;
+  if (tipo === 'sale') {
+    if (!exigeAdmin()) return;
+    if (stockTalla(talla) <= 0) { alert('No hay camas listas talla ' + talla + ' para descontar.'); return; }
+  }
+  datos.terminadas = datos.terminadas || [];
+  datos.terminadas.unshift({
+    id: nuevoId(), talla, tipo,
+    fecha: fechaISOHoy(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  guardar(); renderTerminadas();
+}
+// Maneja cada lectura según el modo (entrada o salida)
+function manejarScan(texto) {
+  if (escPausado) return;
+  let raw = String(texto).trim();
+  let t = raw.toUpperCase();
+  const esTalla = t.startsWith('CAMA-') && TALLAS_MASCOTA.includes(t.slice(5));
+  const talla = esTalla ? t.slice(5) : null;
+
+  // En salida, si NO es una talla, lo tomamos como número de guía
+  if (modoEsc === 'salida' && !talla) {
+    guiaActual = raw;
+    pitido(660, 120);
+    if (navigator.vibrate) navigator.vibrate(60);
+    avisoCamas('📦 Guía <b>' + esc(raw) + '</b><br>Ahora escanea la cama a despachar', 'var(--verde)');
+    return;
+  }
+  if (!talla) return; // no es QR de cama
+
+  // Evita re-leer el mismo código pegado (1.5 s)
+  const ahora = Date.now();
+  if (talla === ultEscTalla && ahora - ultEscTiempo < 1500) return;
+  ultEscTalla = talla; ultEscTiempo = ahora;
+
+  if (modoEsc === 'salida' && stockTalla(talla) <= 0) {
+    pitido(220, 500);
+    if (navigator.vibrate) navigator.vibrate([200,100,200]);
+    avisoCamas('⚠️ No hay stock de talla <b>' + nombreTalla(talla) + '</b>', 'var(--rojo)');
+    return;
+  }
+
+  // Pausa la cámara (no la cierra) y pide confirmación
+  escPausado = true;
+  sonidoCaptura(); // blip al capturar el QR
+  if (navigator.vibrate) navigator.vibrate(40);
+  try { if (escCamas) escCamas.pause(true); } catch(e) {}
+  pendienteEsc = { modo: modoEsc, talla: talla, guia: (modoEsc === 'salida' ? guiaActual : '') };
+  mostrarConfirmEsc();
+}
+
+// ----- Confirmación de cada escaneo (evita errores de talla) -----
+let pendienteEsc = null;
+function mostrarConfirmEsc() {
+  const p = pendienteEsc; if (!p) return;
+  const esSalida = p.modo === 'salida';
+  const tipoEl = document.getElementById('confirmEscTipo');
+  tipoEl.textContent = esSalida ? '➖ SALIDA (despacho)' : '✅ ENTRADA (producción)';
+  tipoEl.style.color = esSalida ? 'var(--rojo)' : 'var(--verde)';
+  const disp = stockTalla(p.talla);
+  document.getElementById('confirmEscTexto').innerHTML = 'Cama talla <b>' + esc(nombreTalla(p.talla)) + '</b>'
+    + '<br><span style="font-size:1rem;color:var(--texto2)">Disponibles ahora: <b>' + disp + '</b></span>'
+    + (esSalida && p.guia ? '<br><span style="font-size:.9rem;color:var(--texto2)">Guía: ' + esc(p.guia) + '</span>' : '');
+  document.getElementById('modalConfirmEsc').classList.add('abierto');
+}
+function aceptarConfirmEsc() {
+  const p = pendienteEsc; pendienteEsc = null;
+  cerrarModales();
+  if (!p) { reanudarEsc(); return; }
+  if (p.modo === 'entrada') {
+    movTerminada(p.talla, 'entra');
+    sonidoEntrada();
+    if (navigator.vibrate) navigator.vibrate(100);
+    avisoCamas('✅ ENTRADA: talla <b>' + nombreTalla(p.talla) + '</b> registrada', 'var(--verde)');
+  } else {
+    if (stockTalla(p.talla) > 0) {
+      datos.terminadas = datos.terminadas || [];
+      datos.terminadas.unshift({
+        id: nuevoId(), talla: p.talla, tipo: 'sale', guia: p.guia || '',
+        fecha: fechaISOHoy(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+      });
+      guardar(); renderTerminadas();
+      sonidoSalida();
+      if (navigator.vibrate) navigator.vibrate([80, 60, 120]);
+      avisoCamas('➖ SALIDA: talla <b>' + nombreTalla(p.talla) + '</b>' + (p.guia ? ' · guía ' + esc(p.guia) : '') + ' · quedan ' + stockTalla(p.talla) + (p.guia ? '<br>Escanea una nueva guía para el siguiente' : ''), 'var(--rojo)');
+      guiaActual = ''; // una guía = una sola cama
+    } else {
+      avisoCamas('⚠️ Ya no hay stock de talla ' + nombreTalla(p.talla), 'var(--rojo)');
+    }
+  }
+  reanudarEsc(); // sigue escaneando sin cerrar la cámara
+}
+function reintentarConfirmEsc() {
+  pendienteEsc = null;
+  ultEscTalla = ''; // permite volver a escanear de inmediato la talla correcta
+  cerrarModales();
+  reanudarEsc();
+}
+// ----- Despacho manual (resta por cantidad, sin cámara) -----
+function abrirDespManual() {
+  const sel = document.getElementById('despTalla');
+  sel.innerHTML = TALLAS_MASCOTA.map(function(t){
+    return '<option value="' + t + '">' + esc(nombreTalla(t)) + ' (disp: ' + stockTalla(t) + ')</option>';
+  }).join('');
+  document.getElementById('despCant').value = '';
+  document.getElementById('despGuia').value = '';
+  actualizarDispManual();
+  document.getElementById('modalDespManual').classList.add('abierto');
+}
+function actualizarDispManual() {
+  const t = document.getElementById('despTalla').value;
+  document.getElementById('despDisp').innerHTML = 'Disponibles ahora: <b>' + stockTalla(t) + '</b>';
+}
+function confirmarDespManual() {
+  const t = document.getElementById('despTalla').value;
+  const cant = parseInt(document.getElementById('despCant').value, 10);
+  const guia = document.getElementById('despGuia').value.trim();
+  if (!t) return;
+  if (!cant || cant < 1) { alert('Escribe una cantidad válida (mínimo 1).'); return; }
+  const disp = stockTalla(t);
+  if (cant > disp) { alert('Solo hay ' + disp + ' camas talla ' + nombreTalla(t) + '. No puedes despachar ' + cant + '.'); return; }
+  datos.terminadas = datos.terminadas || [];
+  datos.terminadas.unshift({
+    id: nuevoId(), talla: t, tipo: 'sale', cant: cant, guia: guia,
+    fecha: fechaISOHoy(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  guardar(); cerrarModales(); renderTerminadas(); renderInventario();
+  try { sonidoSalida(); } catch(e) {}
+  avisoCamas('➖ SALIDA manual: <b>' + cant + '</b> talla <b>' + nombreTalla(t) + '</b>' + (guia ? ' · ' + esc(guia) : '') + ' · quedan ' + stockTalla(t), 'var(--rojo)');
+}
+function venderCodigo(id) {
+  if (!exigeAdmin()) return;
+  if (!confirm('¿Borrar este movimiento?')) return;
+  datos.terminadas = datos.terminadas.filter(c => c.id !== id);
+  guardar(); renderTerminadas();
+}
+
+function renderTerminadas() {
+  const stEl = document.getElementById('stockTallas');
+  if (stEl) stEl.innerHTML = TALLAS_MASCOTA.map(t => {
+    const n = stockTalla(t);
+    return `<div class="tarjeta prod-fila">
+      <div class="prod-nombre">${esc(nombreTalla(t))} <button class="enlace-editar" onclick="renombrarTalla('${t}')">✏️</button></div>
+      <div class="cama-contador">
+        <button class="boton-rojo-claro" onclick="movTerminada('${t}','sale')">−</button>
+        <div class="cama-num">${n}</div>
+      </div>
+    </div>`;
+  }).join('');
+  renderTrazabilidad();
+}
+
+// ---- Trazabilidad: filtros + resumen + historiales ----
+function fechaIsoDe(m) {
+  const f = m.fecha || '';
+  if (f.includes('/')) { const p = f.split('/'); return p[2] + '-' + p[1] + '-' + p[0]; }
+  return f;
+}
+function renderTrazabilidad() {
+  const desde = (document.getElementById('trazDesde') || {}).value || '';
+  const hasta = (document.getElementById('trazHasta') || {}).value || '';
+  const q = ((document.getElementById('trazBuscar') || {}).value || '').trim().toLowerCase();
+  const enRango = function(iso) {
+    if (desde && iso < desde) return false;
+    if (hasta && iso > hasta) return false;
+    return true;
+  };
+  // Camas (entradas/salidas)
+  const camas = (datos.terminadas || []).filter(function(c) {
+    if (!enRango(fechaIsoDe(c))) return false;
+    if (q) { const txt = (nombreTalla(c.talla) + ' ' + (c.guia || '') + ' ' + (c.tipo === 'sale' ? 'salida' : 'entrada')).toLowerCase(); if (!txt.includes(q)) return false; }
+    return true;
+  });
+  let entC = 0, salC = 0;
+  camas.forEach(function(c) { if (c.tipo === 'sale') salC += (c.cant || 1); else entC += (c.cant || 1); });
+  const devs = (datos.devoluciones || []).filter(function(d) { return enRango(fechaIsoDe(d)) && (!q || (d.codigo || '').toLowerCase().includes(q)); });
+  const resEl = document.getElementById('trazResumen');
+  if (resEl) resEl.innerHTML = '<div class="tarjeta"><b>Resumen del periodo</b><br>Camas que entraron: <b>' + entC + '</b><br>Camas despachadas (salidas): <b>' + salC + '</b><br>Devoluciones: <b>' + devs.length + '</b></div>';
+
+  // Historial de camas
+  const cont = document.getElementById('listaTerm');
+  if (cont) {
+    if (!camas.length) cont.innerHTML = '<div class="vacio">Sin movimientos de camas en el periodo.</div>';
+    else {
+      const grupos = {};
+      camas.forEach(function(c) { const f = c.fecha || ''; (grupos[f] = grupos[f] || []).push(c); });
+      cont.innerHTML = Object.keys(grupos).sort(function(a,b){return b.localeCompare(a);}).map(function(f) {
+        return `<div class="fecha-grupo">${f ? fmtFecha(f) : 'Sin fecha'}</div><div class="tarjeta">` +
+          grupos[f].map(function(c) { return `<div class="mov">
+            <div class="mov-info">
+              <div class="mov-titulo">Talla ${esc(nombreTalla(c.talla))}</div>
+              <div class="mov-detalle">${c.tipo === 'sale' ? ('Salida/despacho' + (c.guia ? ' · guía ' + esc(c.guia) : '')) : 'Cama terminada'} - ${c.hora || ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;">
+              <div class="mov-monto ${c.tipo === 'sale' ? 'num-rojo' : 'num-verde'}">${c.tipo === 'sale' ? '−' + (c.cant || 1) : '+' + (c.cant || 1)}</div>
+              <button class="mov-borrar" onclick="venderCodigo('${c.id}')">x</button>
+            </div>
+          </div>`; }).join('') + '</div>';
+      }).join('');
+    }
+  }
+
+  // Historial de otros productos
+  const prods = (datos.movimientos || []).filter(function(m) {
+    if (!enRango(fechaIsoDe(m))) return false;
+    if (q && !(m.producto || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const contM = document.getElementById('listaMovsInv');
+  if (contM) {
+    if (!prods.length) contM.innerHTML = '<div class="vacio">Sin movimientos de productos en el periodo.</div>';
+    else {
+      const grupos = {};
+      prods.forEach(function(m) { const f = m.fecha || ''; (grupos[f] = grupos[f] || []).push(m); });
+      contM.innerHTML = Object.keys(grupos).map(function(f) {
+        const lista = grupos[f];
+        const ent = lista.filter(function(m){return m.tipo==='entrada';}).reduce(function(s,m){return s+m.cantidad;},0);
+        const sal = lista.filter(function(m){return m.tipo==='salida';}).reduce(function(s,m){return s+m.cantidad;},0);
+        return `<div class="fecha-grupo">${f} · ⬆️ ${ent} / ⬇️ ${sal}</div><div class="tarjeta">` +
+          lista.map(function(m) { return `<div class="mov">
+            <div class="mov-info">
+              <div class="mov-titulo">${esc(m.producto)}</div>
+              <div class="mov-detalle">${m.tipo === 'eliminado' ? '🗑️ Eliminado del inventario' : (m.tipo === 'entrada' ? 'Entrada' : 'Salida')} - ${m.hora || ''}${m.nota && m.tipo !== 'eliminado' ? ' - ' + esc(m.nota) : ''}</div>
+            </div>
+            <div class="mov-monto ${m.tipo === 'entrada' ? 'num-verde' : 'num-rojo'}">${m.tipo === 'eliminado' ? '🗑️' : (m.tipo === 'entrada' ? '+' : '−') + m.cantidad}</div>
+          </div>`; }).join('') + '</div>';
+      }).join('');
+    }
+  }
+}
+function limpiarFiltroTraz() {
+  ['trazDesde','trazHasta','trazBuscar'].forEach(function(id){ const e=document.getElementById(id); if(e) e.value=''; });
+  renderTrazabilidad();
+}
+function cargarLibQR() {
+  return new Promise((resolve, reject) => {
+    if (window.Html5Qrcode) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('no se pudo cargar la libreria'));
+    document.head.appendChild(s);
+  });
+}
+async function iniciarEscCamas(modo) {
+  if (escCamas) return;
+  getAudioCtx(); // desbloquea el audio con el toque del usuario
+  modoEsc = modo || 'entrada';
+  escPausado = false;
+  ultEscTalla = ''; ultEscTiempo = 0;
+  if (modoEsc === 'entrada') guiaActual = ''; // en salida conservamos la guía del despacho en curso
+  document.getElementById('btnEscCamas').style.display = 'none';
+  document.getElementById('btnEscSalida').style.display = 'none';
+  document.getElementById('btnDetEscCamas').style.display = 'block';
+  document.getElementById('camWrap').style.display = 'block';
+  if (modoEsc === 'salida') {
+    avisoCamas('Modo SALIDA' + (guiaActual ? ' · guía ' + esc(guiaActual) : '') + ': escanea la guía (opcional) y luego la cama a despachar', 'var(--texto2)');
+  } else {
+    document.getElementById('avisoCamas').style.display = 'none';
+  }
+  try {
+    await cargarLibQR();
+    escCamas = new Html5Qrcode('lectorCamas');
+    await escCamas.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 220, height: 220 } },
+      (texto) => manejarScan(texto), () => {});
+  } catch(e) {
+    escCamas = null;
+    detenerEscCamas();
+    alert('No se pudo abrir la cámara. Dale permiso de cámara al navegador.');
+  }
+}
+async function detenerEscCamas() {
+  document.getElementById('btnEscCamas').style.display = 'block';
+  document.getElementById('btnEscSalida').style.display = 'block';
+  document.getElementById('btnDetEscCamas').style.display = 'none';
+  if (escCamas) { try { await escCamas.stop(); escCamas.clear(); } catch(e) {} escCamas = null; }
+  document.getElementById('camWrap').style.display = 'none';
+  ocultarAviso(); // quita el aviso ("Modo SALIDA", etc.) al cerrar la cámara
+}
+function abrirVentanaApp() { window.open(window.location.href, '_blank'); }
+
+let cajaTipo = null;
+function renderCaja() {
+  const hoy = hoyStr();
+  let saldo = 0, entHoy = 0, salHoy = 0;
+  datos.caja.forEach(m => {
+    saldo += m.tipo === 'entrada' ? m.monto : -m.monto;
+    if (m.fecha === hoy) { if (m.tipo === 'entrada') entHoy += m.monto; else salHoy += m.monto; }
+  });
+  document.getElementById('saldoCaja').textContent = plata(saldo);
+  document.getElementById('entradasHoy').textContent = plata(entHoy);
+  document.getElementById('salidasHoy').textContent = plata(salHoy);
+  const sh = document.getElementById('saldoHoy');
+  sh.textContent = plata(entHoy - salHoy);
+  sh.className = 'num ' + (entHoy - salHoy >= 0 ? 'num-verde' : 'num-rojo');
+
+  const cont = document.getElementById('listaCaja');
+  if (!datos.caja.length) { cont.innerHTML = '<div class="vacio">Sin movimientos de caja todavía.</div>'; return; }
+  const grupos = {};
+  datos.caja.forEach(m => { (grupos[m.fecha] = grupos[m.fecha] || []).push(m); });
+  cont.innerHTML = Object.keys(grupos).map(f => {
+    const movs = grupos[f];
+    const balance = movs.reduce((s,m) => s + (m.tipo === 'entrada' ? m.monto : -m.monto), 0);
+    return `<div class="fecha-grupo">${f === hoy ? 'Hoy' : f} - Balance: ${plata(balance)}</div>
+      <div class="tarjeta">` + movs.map(m => `
+        <div class="mov">
+          <div class="mov-info">
+            <div class="mov-titulo">${esc(m.concepto || (m.tipo === 'entrada' ? 'Entrada' : 'Salida'))}</div>
+            <div class="mov-detalle">${m.hora || ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <div class="mov-monto ${m.tipo === 'entrada' ? 'num-verde' : 'num-rojo'}">${m.tipo === 'entrada' ? '+' : '−'}${plata(m.monto)}</div>
+            <button class="mov-borrar" onclick="borrarMovCaja('${m.id}')">x</button>
+          </div>
+        </div>`).join('') + '</div>';
+  }).join('');
+}
+function abrirModalCaja(tipo) {
+  cajaTipo = tipo;
+  document.getElementById('tituloModalCaja').textContent = tipo === 'entrada' ? 'Entrada de dinero' : 'Salida de dinero';
+  document.getElementById('cajaMonto').value = '';
+  document.getElementById('cajaConcepto').value = '';
+  document.getElementById('btnGuardarCaja').className = 'boton ' + (tipo === 'entrada' ? 'boton-verde' : 'boton-rojo');
+  document.getElementById('modalCaja').classList.add('abierto');
+  setTimeout(() => document.getElementById('cajaMonto').focus(), 100);
+}
+function guardarCaja() {
+  const monto = parseFloat(document.getElementById('cajaMonto').value);
+  if (!monto || monto <= 0) { alert('Escribe un monto válido.'); return; }
+  datos.caja.unshift({
+    id: nuevoId(), tipo: cajaTipo, monto,
+    concepto: document.getElementById('cajaConcepto').value.trim(),
+    fecha: hoyStr(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  guardar(); cerrarModales(); renderCaja();
+}
+function borrarMovCaja(id) {
+  if (!confirm('¿Borrar este movimiento de caja?')) return;
+  datos.caja = datos.caja.filter(m => m.id !== id);
+  guardar(); renderCaja();
+}
+
+let mesVistaDev = (() => { const h = new Date(); return { y: h.getFullYear(), m: h.getMonth() }; })();
+function isoDevol(d) {
+  if (!d.fecha) return '';
+  if (d.fecha.includes('/')) { const p = d.fecha.split('/'); return p[2] + '-' + p[1] + '-' + p[0]; }
+  return d.fecha;
+}
+function renderDevoluciones() {
+  const lista = datos.devoluciones || [];
+  document.getElementById('mesDevol').textContent = MESES[mesVistaDev.m] + ' ' + mesVistaDev.y;
+  const claveMes = mesVistaDev.y + '-' + String(mesVistaDev.m + 1).padStart(2, '0');
+  const delMes = lista.filter(d => isoDevol(d).startsWith(claveMes));
+  document.getElementById('totalDevolMes').textContent = delMes.length;
+  document.getElementById('etqDevolMes').textContent = 'DEVOLUCIONES EN ' + MESES[mesVistaDev.m].toUpperCase() + ' ' + mesVistaDev.y;
+  const cont = document.getElementById('listaDevol');
+  if (!delMes.length) { cont.innerHTML = '<div class="vacio">Sin devoluciones este mes.</div>'; return; }
+  const orden = [...delMes].sort((a, b) => isoDevol(b).localeCompare(isoDevol(a)));
+  const grupos = {};
+  orden.forEach(d => { const f = isoDevol(d); (grupos[f] = grupos[f] || []).push(d); });
+  cont.innerHTML = Object.keys(grupos).map(f =>
+    `<div class="fecha-grupo">${fmtFecha(f)} - ${grupos[f].length} devoluciones</div><div class="tarjeta">` +
+    grupos[f].map(d => `<div class="mov">
+      <div class="mov-info">
+        <div class="mov-titulo">${esc(d.codigo)}</div>
+        <div class="mov-detalle">${d.hora || ''}</div>
+      </div>
+      <button class="mov-borrar" onclick="borrarDevol('${d.id}')">x</button>
+    </div>`).join('') + '</div>').join('');
+}
+function cambiarMesDev(delta) {
+  mesVistaDev.m += delta;
+  if (mesVistaDev.m < 0) { mesVistaDev.m = 11; mesVistaDev.y--; }
+  if (mesVistaDev.m > 11) { mesVistaDev.m = 0; mesVistaDev.y++; }
+  renderDevoluciones();
+}
+function avisoDevol(html, color) {
+  const av = document.getElementById('avisoDevol');
+  av.innerHTML = html; av.style.background = color; av.style.display = 'block';
+}
+// Un solo contexto de audio compartido (confiable en celulares)
+let audioCtx = null;
+function getAudioCtx() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch(e) { return null; }
+}
+function tono(freq, inicio, dur, tipo) {
+  const ctx = getAudioCtx(); if (!ctx) return;
+  const o = ctx.createOscillator(); const g = ctx.createGain();
+  o.type = tipo || 'square'; o.frequency.value = freq;
+  o.connect(g); g.connect(ctx.destination);
+  const t0 = ctx.currentTime + inicio;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.start(t0);
+  o.stop(t0 + dur + 0.02);
+}
+function pitido(frec, dur) { tono(frec, 0, (dur || 150) / 1000, 'square'); }
+function sonidoCaptura() { tono(1600, 0, 0.09, 'sine'); }       // blip al capturar
+function sonidoEntrada() { tono(988, 0, 0.10); tono(1319, 0.09, 0.20); }   // sube = entrada
+function sonidoSalida()  { tono(1318, 0, 0.13); tono(1760, 0.11, 0.30); }  // cha-ching = salida
+function registrarCodigo(codigo) {
+  codigo = String(codigo).trim();
+  if (!codigo) return;
+  datos.devoluciones = datos.devoluciones || [];
+  const existente = datos.devoluciones.find(d => d.codigo === codigo);
+  if (existente) {
+    pitido(220, 500);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    avisoDevol('YA ESTÁ REGISTRADA<br><b>' + esc(codigo) + '</b><br>Entró el ' + fmtFecha(isoDevol(existente)) + ' a las ' + (existente.hora || ''), 'var(--rojo)');
+    return;
+  }
+  datos.devoluciones.unshift({
+    id: nuevoId(), codigo,
+    fecha: fechaISOHoy(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
+  });
+  guardar(); renderDevoluciones();
+  pitido(880, 150);
+  if (navigator.vibrate) navigator.vibrate(100);
+  avisoDevol('Registrada<br><b>' + esc(codigo) + '</b>', 'var(--verde)');
+}
+function devolManual() {
+  const v = document.getElementById('devolCodigo').value.trim();
+  if (!v) { alert('Escribe o pega el número de la guía.'); return; }
+  pedirConfirmDev(v);
+  document.getElementById('devolCodigo').value = '';
+}
+
+// ----- Escáner de cámara para Devoluciones -----
+let escDev = null, escDevPausado = false, ultDevLeido = '', ultDevTiempo = 0, pendienteDev = null;
+async function iniciarEscDev() {
+  if (escDev) return;
+  getAudioCtx();
+  escDevPausado = false; ultDevLeido = '';
+  document.getElementById('btnEscDev').style.display = 'none';
+  document.getElementById('btnDetEscDev').style.display = 'block';
+  document.getElementById('camWrapDev').style.display = 'block';
+  try {
+    await cargarLibQR();
+    escDev = new Html5Qrcode('lectorDev');
+    await escDev.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 160 } },
+      (texto) => manejarScanDev(texto), () => {});
+  } catch(e) {
+    escDev = null; detenerEscDev();
+    alert('No se pudo abrir la cámara. Dale permiso de cámara al navegador.');
+  }
+}
+async function detenerEscDev() {
+  document.getElementById('btnEscDev').style.display = 'block';
+  document.getElementById('btnDetEscDev').style.display = 'none';
+  if (escDev) { try { await escDev.stop(); escDev.clear(); } catch(e) {} escDev = null; }
+  document.getElementById('camWrapDev').style.display = 'none';
+}
+function manejarScanDev(texto) {
+  if (escDevPausado) return;
+  const cod = String(texto).trim();
+  if (!cod) return;
+  const ahora = Date.now();
+  if (cod === ultDevLeido && ahora - ultDevTiempo < 1500) return;
+  ultDevLeido = cod; ultDevTiempo = ahora;
+  escDevPausado = true;
+  sonidoCaptura();
+  if (navigator.vibrate) navigator.vibrate(40);
+  try { if (escDev) escDev.pause(true); } catch(e) {}
+  // Si la guía ya está registrada: pop-up de aviso y la cámara sigue abierta
+  const existente = (datos.devoluciones || []).find(d => d.codigo === cod);
+  if (existente) {
+    pitido(220, 500);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    setTimeout(function() {
+      alert('⚠️ Esta guía YA ESTÁ en el sistema.\n\nGuía: ' + cod + '\nRegistrada el ' + fmtFecha(isoDevol(existente)) + ' a las ' + (existente.hora || ''));
+      escDevPausado = false;
+      try { if (escDev) escDev.resume(); } catch(e) {}
+    }, 120);
+    return;
+  }
+  pedirConfirmDev(cod);
+}
+function pedirConfirmDev(cod) {
+  pendienteDev = cod;
+  document.getElementById('confirmDevTexto').innerHTML = 'Guía <b>' + esc(cod) + '</b>';
+  document.getElementById('modalConfirmDev').classList.add('abierto');
+}
+function aceptarDev() {
+  const cod = pendienteDev; pendienteDev = null;
+  cerrarModales();
+  if (cod) registrarCodigo(cod);
+  escDevPausado = false;
+  try { if (escDev) escDev.resume(); } catch(e) {}
+}
+function reintentarDev() {
+  pendienteDev = null; ultDevLeido = '';
+  cerrarModales();
+  escDevPausado = false;
+  try { if (escDev) escDev.resume(); } catch(e) {}
+}
+function borrarDevol(id) {
+  if (!confirm('¿Borrar esta devolución?')) return;
+  datos.devoluciones = datos.devoluciones.filter(d => d.id !== id);
+  guardar(); renderDevoluciones();
+}
+
+function verificarClave() {
+  if (document.getElementById('claveInput').value === CLAVE_DATOS) {
+    datosDesbloqueado = true; adminOk = true; cerrarModales(); irTab('datos');
+  } else {
+    alert('Contraseña incorrecta.');
+  }
+}
+function guardarClave() {
+  const c = document.getElementById('nuevaClave').value.trim();
+  if (!c) { alert('Escribe la contraseña que quieres usar.'); return; }
+  datos.clave = c; adminOk = true;
+  guardar();
+  document.getElementById('nuevaClave').value = '';
+  alert('Contraseña guardada.');
+}
+function quitarClave() {
+  if (!datos.clave) { alert('No hay contraseña puesta.'); return; }
+  if (!confirm('¿Quitar la contraseña de administrador?')) return;
+  datos.clave = ''; guardar();
+  alert('Contraseña eliminada.');
+}
+function guardarClaveCaja() {
+  const c = document.getElementById('nuevaClaveCaja').value.trim();
+  if (!c) { alert('Escribe la contraseña de Caja.'); return; }
+  datos.claveCaja = c; guardar();
+  document.getElementById('nuevaClaveCaja').value = '';
+  alert('Contraseña de Caja guardada. Se le pedirá al trabajador cada vez que entre a Caja.');
+}
+function quitarClaveCaja() {
+  if (!datos.claveCaja) { alert('No hay contraseña de Caja puesta.'); return; }
+  if (!confirm('¿Quitar la contraseña de Caja?')) return;
+  datos.claveCaja = ''; guardar();
+  alert('Contraseña de Caja eliminada.');
+}
+
+function exportarDatos() {
+  const blob = new Blob([JSON.stringify(datos, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'respaldo-bodega-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+function importarDatos(ev) {
+  const archivo = ev.target.files[0];
+  if (!archivo) return;
+  const lector = new FileReader();
+  lector.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!d.productos || !d.caja) throw new Error();
+      if (!confirm('Esto reemplazará los datos actuales con el respaldo. ¿Continuar?')) return;
+      datos = { productos: d.productos || [], movimientos: d.movimientos || [], trabajadores: d.trabajadores || [], produccion: d.produccion || [], terminadas: d.terminadas || [], caja: d.caja || [], devoluciones: d.devoluciones || [], nombresTallas: d.nombresTallas || {}, clave: d.clave || datos.clave || '', claveCaja: d.claveCaja || datos.claveCaja || '', usuarioAdmin: d.usuarioAdmin || datos.usuarioAdmin || 'admin', usuarioTrab: d.usuarioTrab || datos.usuarioTrab || 'bodega', claveTrab: d.claveTrab || datos.claveTrab || '' };
+      guardar(); renderTodo();
+      alert('Respaldo restaurado correctamente.');
+    } catch(err) { alert('El archivo no es un respaldo válido.'); }
+  };
+  lector.readAsText(archivo);
+  ev.target.value = '';
+}
+function borrarTodo() {
+  if (!confirm('Se borrarán TODOS los datos. ¿Estás seguro?')) return;
+  if (!confirm('Última confirmación: esta acción no se puede deshacer.')) return;
+  datos = { productos: [], movimientos: [], trabajadores: [], produccion: [], terminadas: [], caja: [], devoluciones: [], nombresTallas: datos.nombresTallas || {}, clave: datos.clave || '', claveCaja: datos.claveCaja || '', usuarioAdmin: datos.usuarioAdmin || 'admin', usuarioTrab: datos.usuarioTrab || 'bodega', claveTrab: datos.claveTrab || '' };
+  guardar(); renderTodo();
+}
+
+let ajustes = { urlSync: '' };
+try { const a = lsGet('miBodegaAjustes'); if (a) ajustes = JSON.parse(a); } catch(e) {}
+function guardarAjustes() { lsSet('miBodegaAjustes', JSON.stringify(ajustes)); }
+
+let timerPush = null, enviando = false;
+let pullListo = false; // no enviamos a la nube hasta haber leído primero los datos remotos (evita borrarlos)
+let cambiosPendientes = false; // hubo cambios locales antes de la primera lectura
+function ponerEstado(txt) { document.getElementById('estadoSync').textContent = txt; }
+function horaCorta() { return new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}); }
+
+function programarPush() {
+  if (!ajustes.urlSync) return;
+  // Aún no hemos leído la nube: NO enviamos para no pisar/borrar lo que hay allá.
+  if (!pullListo) { cambiosPendientes = true; ponerEstado('leyendo nube...'); return; }
+  ponerEstado('guardando...');
+  clearTimeout(timerPush);
+  timerPush = setTimeout(enviarNube, 1500);
+}
+// Cuenta cuántos registros tiene un paquete de datos (para no enviar/adoptar "vacío")
+function nItems(d) {
+  if (!d) return 0;
+  return (d.productos || []).length + (d.terminadas || []).length + (d.caja || []).length
+    + (d.movimientos || []).length + (d.devoluciones || []).length + (d.produccion || []).length;
+}
+async function enviarNube() {
+  if (!ajustes.urlSync || enviando) return;
+  // Nunca enviamos un paquete vacío: un equipo sin datos no debe poder borrar la nube.
+  if (nItems(datos) === 0) { return; }
+  enviando = true;
+  try {
+    const r = await fetch(ajustes.urlSync, { method: 'POST', body: JSON.stringify(datos) });
+    const resp = await r.json();
+    if (resp.conflicto && resp.datos) adoptarRemoto(resp.datos);
+    ponerEstado('guardado ' + horaCorta());
+  } catch(e) {
+    ponerEstado('sin conexión (pendiente)');
+    setTimeout(enviarNube, 30000);
+  }
+  enviando = false;
+}
+async function traerNube(silencioso) {
+  if (!ajustes.urlSync) return;
+  try {
+    const r = await fetch(ajustes.urlSync + '?api=1&v=' + Date.now());
+    const remoto = await r.json();
+    const remotoTiene = nItems(remoto);
+    const localTiene = nItems(datos);
+    // Adoptamos lo remoto si: (a) es más nuevo, o (b) este equipo está vacío y la nube SÍ tiene datos
+    // (esto recupera solo los celulares que quedaron en ceros, sin importar la hora).
+    if (remoto && ((remoto.updatedAt && remoto.updatedAt > (datos.updatedAt || 0)) || (remotoTiene > 0 && localTiene === 0))) {
+      adoptarRemoto(remoto);
+      cambiosPendientes = false; // adoptamos lo remoto; descartamos cambios locales previos
+      ponerEstado('actualizado ' + horaCorta());
+    } else if (!silencioso) {
+      ponerEstado('al día ' + horaCorta());
+    }
+    // Ya leímos la nube al menos una vez: ahora sí es seguro enviar.
+    pullListo = true;
+    if (cambiosPendientes) { cambiosPendientes = false; programarPush(); }
+  } catch(e) { if (!silencioso) ponerEstado('sin conexión'); }
+}
+function adoptarRemoto(d) {
+  datos = {
+    productos: d.productos || [], movimientos: d.movimientos || [],
+    trabajadores: d.trabajadores || [], produccion: d.produccion || [],
+    terminadas: d.terminadas || [],
+    caja: d.caja || [], devoluciones: d.devoluciones || [],
+    nombresTallas: d.nombresTallas || {},
+    clave: d.clave || '', claveCaja: d.claveCaja || '',
+    usuarioAdmin: d.usuarioAdmin || 'admin', usuarioTrab: d.usuarioTrab || 'bodega', claveTrab: d.claveTrab || '',
+    updatedAt: d.updatedAt || Date.now()
+  };
+  migrarEscaneadas();
+  lsSet(CLAVE, JSON.stringify(datos));
+  renderTodo();
+}
+function conectarNube() {
+  const url = document.getElementById('urlSync').value.trim();
+  if (!url.startsWith('https://script.google.com/')) {
+    alert('La URL debe empezar con https://script.google.com/ y terminar en /exec'); return;
+  }
+  ajustes.urlSync = url; guardarAjustes();
+  sincronizarAhora();
+}
+async function sincronizarAhora() {
+  if (!ajustes.urlSync) { alert('No hay nube configurada.'); return; }
+  ponerEstado('sincronizando...');
+  await traerNube(true);
+  await enviarNube();
+}
+setInterval(() => traerNube(true), 20000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) traerNube(true); });
+
+function renderTodo() {
+  try { renderInventario(); } catch(e) {}
+  try { renderCamas(); } catch(e) {}
+  try { renderTerminadas(); } catch(e) {}
+  try { renderCaja(); } catch(e) {}
+  try { renderDevoluciones(); } catch(e) {}
+}
+document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-CO', {weekday:'short', day:'numeric', month:'short'});
+cargar();
+renderTodo();
+entrarComo('admin'); // sin login: entra directo con acceso total
+if (URL_NUBE_FIJA.startsWith('https://')) { ajustes.urlSync = URL_NUBE_FIJA; guardarAjustes(); }
+document.getElementById('urlSync').value = ajustes.urlSync;
+if (ajustes.urlSync) { ponerEstado('conectado'); traerNube(true); }
+else ponerEstado('sin nube');
+</script>
+</body>
+</html>
