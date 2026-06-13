@@ -1494,26 +1494,29 @@ async function enviarNube() {
   enviando = true;
   const seqAlEnviar = cambioSeq; // qué versión local estamos subiendo
   // GUARDADO por GET en trozos: los POST cross-origin NO ejecutan doPost; los GET sí.
-  // Mandamos los datos en base64 partidos en pedazos; el último trozo devuelve lo fusionado.
+  // Cada trozo se manda con fetch "no-cors": el servidor lo recibe y guarda, y el navegador
+  // NO lo bloquea (evita el error ORB). No leemos la respuesta de los trozos; luego leemos
+  // lo fusionado por JSONP. Así no hay reintentos en vano: queda mucho más liviano.
   try {
     const raw = JSON.stringify(datos);
     const b64 = btoa(unescape(encodeURIComponent(raw))); // base64 seguro con tildes/emojis
     const TAM = 4000;
     const n = Math.max(1, Math.ceil(b64.length / TAM));
     const sid = 's' + Date.now() + Math.floor(Math.random() * 1000000);
-    let respFinal = null;
     for (let i = 0; i < n; i++) {
       const trozo = encodeURIComponent(b64.slice(i * TAM, (i + 1) * TAM));
-      respFinal = await jsonp(ajustes.urlSync + '?w=1&s=' + sid + '&i=' + i + '&n=' + n + '&d=' + trozo + '&v=' + Date.now());
+      await fetch(ajustes.urlSync + '?w=1&s=' + sid + '&i=' + i + '&n=' + n + '&d=' + trozo + '&v=' + Date.now(), { mode: 'no-cors' });
     }
+    // Leemos lo FUSIONADO por JSONP (la lectura sí funciona) y lo adoptamos.
+    let remoto = null;
+    try { remoto = await jsonp(ajustes.urlSync + '?api=1&v=' + Date.now()); } catch(eLeer) {}
     if (cambioSeq === seqAlEnviar) {
       enviadoSeq = seqAlEnviar;
       sinEnviar = false;
       lsSet('miBodegaPend', '0');
-      // El último trozo devuelve los datos FUSIONADOS (la verdad combinada): los adoptamos.
-      if (respFinal && !respFinal.error && typeof respFinal.rev === 'number') {
+      if (remoto && !remoto.error && typeof remoto.rev === 'number') {
         const lr = (typeof datos.rev === 'number') ? datos.rev : -1;
-        if (respFinal.rev > lr || (nItems(respFinal) > 0 && nItems(datos) === 0)) adoptarRemoto(respFinal);
+        if (remoto.rev > lr || (nItems(remoto) > 0 && nItems(datos) === 0)) adoptarRemoto(remoto);
       }
     }
     ponerEstado('guardado ' + horaCorta());
