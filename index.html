@@ -405,7 +405,7 @@ const URL_NUBE_FIJA = (function() {
 })();
 function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
-let datos = { productos: [], movimientos: [], trabajadores: [], produccion: [], terminadas: [], caja: [], devoluciones: [], nombresTallas: {}, clave: '', claveCaja: '', usuarioAdmin: 'admin', usuarioTrab: 'bodega', claveTrab: '' };
+let datos = { productos: [], movimientos: [], trabajadores: [], produccion: [], terminadas: [], caja: [], devoluciones: [], nombresTallas: {}, clave: '', claveCaja: '', usuarioAdmin: 'admin', usuarioTrab: 'bodega', claveTrab: '', borrados: [], rev: 0 };
 
 function cargar() {
   try {
@@ -425,6 +425,8 @@ function cargar() {
       datos.usuarioAdmin = obj.usuarioAdmin || 'admin';
       datos.usuarioTrab = obj.usuarioTrab || 'bodega';
       datos.claveTrab = obj.claveTrab || '';
+      datos.borrados = obj.borrados || [];
+      datos.rev = obj.rev || 0;
       datos.updatedAt = obj.updatedAt || 0;
     }
   } catch(e) {}
@@ -444,8 +446,17 @@ function migrarEscaneadas() {
 }
 function guardar() {
   datos.updatedAt = Date.now();
+  cambioSeq++;          // marca que hubo un cambio local
+  sinEnviar = true;     // hay algo local pendiente de subir a la nube
+  lsSet('miBodegaPend', '1'); // queda marcado aunque cierren la app sin conexión
   lsSet(CLAVE, JSON.stringify(datos));
   programarPush();
+}
+// Registra un id como "borrado" para que NO reaparezca al fusionar con otros celulares.
+function marcarBorrado(id) {
+  if (id == null) return;
+  datos.borrados = datos.borrados || [];
+  datos.borrados.push(id);
 }
 function nuevoId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function hoyStr() { return new Date().toLocaleDateString('es-CO', {year:'numeric', month:'2-digit', day:'2-digit'}); }
@@ -583,9 +594,9 @@ function guardarProducto() {
   const stock = Math.max(0, parseInt(document.getElementById('prodStock').value) || 0);
   if (prodEditando) {
     const p = datos.productos.find(x => x.id === prodEditando);
-    p.nombre = nombre; p.unidad = unidad; p.stock = stock;
+    p.nombre = nombre; p.unidad = unidad; p.stock = stock; p.u = Date.now();
   } else {
-    datos.productos.push({ id: nuevoId(), nombre, unidad, stock });
+    datos.productos.push({ id: nuevoId(), nombre, unidad, stock, u: Date.now() });
   }
   guardar(); cerrarModales(); renderInventario();
 }
@@ -602,6 +613,7 @@ function eliminarProducto() {
     nota: 'Producto eliminado del inventario',
     fecha: hoyStr(), hora: new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'})
   });
+  marcarBorrado(prodEditando);
   datos.productos = datos.productos.filter(x => x.id !== prodEditando);
   guardar(); cerrarModales(); renderInventario();
 }
@@ -624,6 +636,7 @@ function guardarMovimiento() {
     if (!confirm('Vas a sacar más de lo que hay en stock (' + p.stock + '). ¿Continuar?')) return;
   }
   p.stock = movTipo === 'entrada' ? p.stock + cant : Math.max(0, p.stock - cant);
+  p.u = Date.now();
   datos.movimientos.unshift({
     id: nuevoId(), producto: p.nombre, tipo: movTipo, cantidad: cant,
     nota: document.getElementById('movNota').value.trim(),
@@ -759,6 +772,7 @@ function guardarProduccion() {
 }
 function borrarProduccion(id) {
   if (!confirm('¿Borrar este registro de producción?')) return;
+  marcarBorrado(id);
   datos.produccion = datos.produccion.filter(p => p.id !== id);
   guardar(); renderCamas();
 }
@@ -777,15 +791,16 @@ function guardarTrabajador() {
   datos.trabajadores = datos.trabajadores || [];
   if (trabajadorEditando) {
     const t = datos.trabajadores.find(x => x.id === trabajadorEditando);
-    t.nombre = nombre;
-    (datos.produccion || []).forEach(p => { if (p.trabajadorId === t.id) p.trabajador = nombre; });
+    t.nombre = nombre; t.u = Date.now();
+    (datos.produccion || []).forEach(p => { if (p.trabajadorId === t.id) { p.trabajador = nombre; p.u = Date.now(); } });
   } else {
-    datos.trabajadores.push({ id: nuevoId(), nombre });
+    datos.trabajadores.push({ id: nuevoId(), nombre, u: Date.now() });
   }
   guardar(); cerrarModales(); renderCamas();
 }
 function eliminarTrabajador() {
   if (!confirm('¿Eliminar este trabajador? Su historial se conserva.')) return;
+  marcarBorrado(trabajadorEditando);
   datos.trabajadores = datos.trabajadores.filter(t => t.id !== trabajadorEditando);
   guardar(); cerrarModales(); renderCamas();
 }
@@ -989,6 +1004,7 @@ function confirmarDespManual() {
 function venderCodigo(id) {
   if (!exigeAdmin()) return;
   if (!confirm('¿Borrar este movimiento?')) return;
+  marcarBorrado(id);
   datos.terminadas = datos.terminadas.filter(c => c.id !== id);
   guardar(); renderTerminadas();
 }
@@ -1194,6 +1210,7 @@ function guardarCaja() {
 }
 function borrarMovCaja(id) {
   if (!confirm('¿Borrar este movimiento de caja?')) return;
+  marcarBorrado(id);
   datos.caja = datos.caja.filter(m => m.id !== id);
   guardar(); renderCaja();
 }
@@ -1358,6 +1375,7 @@ function reintentarDev() {
 }
 function borrarDevol(id) {
   if (!confirm('¿Borrar esta devolución?')) return;
+  marcarBorrado(id);
   datos.devoluciones = datos.devoluciones.filter(d => d.id !== id);
   guardar(); renderDevoluciones();
 }
@@ -1413,7 +1431,7 @@ function importarDatos(ev) {
       const d = JSON.parse(e.target.result);
       if (!d.productos || !d.caja) throw new Error();
       if (!confirm('Esto reemplazará los datos actuales con el respaldo. ¿Continuar?')) return;
-      datos = { productos: d.productos || [], movimientos: d.movimientos || [], trabajadores: d.trabajadores || [], produccion: d.produccion || [], terminadas: d.terminadas || [], caja: d.caja || [], devoluciones: d.devoluciones || [], nombresTallas: d.nombresTallas || {}, clave: d.clave || datos.clave || '', claveCaja: d.claveCaja || datos.claveCaja || '', usuarioAdmin: d.usuarioAdmin || datos.usuarioAdmin || 'admin', usuarioTrab: d.usuarioTrab || datos.usuarioTrab || 'bodega', claveTrab: d.claveTrab || datos.claveTrab || '' };
+      datos = { productos: d.productos || [], movimientos: d.movimientos || [], trabajadores: d.trabajadores || [], produccion: d.produccion || [], terminadas: d.terminadas || [], caja: d.caja || [], devoluciones: d.devoluciones || [], nombresTallas: d.nombresTallas || {}, clave: d.clave || datos.clave || '', claveCaja: d.claveCaja || datos.claveCaja || '', usuarioAdmin: d.usuarioAdmin || datos.usuarioAdmin || 'admin', usuarioTrab: d.usuarioTrab || datos.usuarioTrab || 'bodega', claveTrab: d.claveTrab || datos.claveTrab || '', borrados: d.borrados || datos.borrados || [], rev: datos.rev || 0 };
       guardar(); renderTodo();
       alert('Respaldo restaurado correctamente.');
     } catch(err) { alert('El archivo no es un respaldo válido.'); }
@@ -1424,7 +1442,7 @@ function importarDatos(ev) {
 function borrarTodo() {
   if (!confirm('Se borrarán TODOS los datos. ¿Estás seguro?')) return;
   if (!confirm('Última confirmación: esta acción no se puede deshacer.')) return;
-  datos = { productos: [], movimientos: [], trabajadores: [], produccion: [], terminadas: [], caja: [], devoluciones: [], nombresTallas: datos.nombresTallas || {}, clave: datos.clave || '', claveCaja: datos.claveCaja || '', usuarioAdmin: datos.usuarioAdmin || 'admin', usuarioTrab: datos.usuarioTrab || 'bodega', claveTrab: datos.claveTrab || '' };
+  datos = { productos: [], movimientos: [], trabajadores: [], produccion: [], terminadas: [], caja: [], devoluciones: [], nombresTallas: datos.nombresTallas || {}, clave: datos.clave || '', claveCaja: datos.claveCaja || '', usuarioAdmin: datos.usuarioAdmin || 'admin', usuarioTrab: datos.usuarioTrab || 'bodega', claveTrab: datos.claveTrab || '', borrados: datos.borrados || [], rev: datos.rev || 0 };
   guardar(); renderTodo();
 }
 
@@ -1435,6 +1453,9 @@ function guardarAjustes() { lsSet('miBodegaAjustes', JSON.stringify(ajustes)); }
 let timerPush = null, enviando = false;
 let pullListo = false; // no enviamos a la nube hasta haber leído primero los datos remotos (evita borrarlos)
 let cambiosPendientes = false; // hubo cambios locales antes de la primera lectura
+let sinEnviar = false;   // hay cambios locales que aún no se confirmaron en la nube
+let cambioSeq = 0;       // contador de cambios locales
+let enviadoSeq = -1;     // hasta qué cambio alcanzamos a enviar
 function ponerEstado(txt) { document.getElementById('estadoSync').textContent = txt; }
 function horaCorta() { return new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}); }
 
@@ -1444,7 +1465,7 @@ function programarPush() {
   if (!pullListo) { cambiosPendientes = true; ponerEstado('leyendo nube...'); return; }
   ponerEstado('guardando...');
   clearTimeout(timerPush);
-  timerPush = setTimeout(enviarNube, 1500);
+  timerPush = setTimeout(function() { timerPush = null; enviarNube(); }, 1500);
 }
 // Cuenta cuántos registros tiene un paquete de datos (para no enviar/adoptar "vacío")
 function nItems(d) {
@@ -1455,12 +1476,28 @@ function nItems(d) {
 async function enviarNube() {
   if (!ajustes.urlSync || enviando) return;
   // Nunca enviamos un paquete vacío: un equipo sin datos no debe poder borrar la nube.
-  if (nItems(datos) === 0) { return; }
+  // Si está vacío, soltamos el "pendiente" para que el celular pueda recuperar lo de la nube.
+  if (nItems(datos) === 0) { sinEnviar = false; lsSet('miBodegaPend', '0'); return; }
   enviando = true;
+  const seqAlEnviar = cambioSeq; // qué versión local estamos subiendo
   try {
     const r = await fetch(ajustes.urlSync, { method: 'POST', body: JSON.stringify(datos) });
     const resp = await r.json();
-    if (resp.conflicto && resp.datos) adoptarRemoto(resp.datos);
+    if (resp && resp.datos) {
+      if (cambioSeq === seqAlEnviar) {
+        // No hubo cambios locales nuevos mientras subíamos:
+        // adoptamos lo FUSIONADO (lo de todos los celulares combinado).
+        enviadoSeq = seqAlEnviar;
+        sinEnviar = false;
+        lsSet('miBodegaPend', '0');
+        adoptarRemoto(resp.datos);
+      } else {
+        // Hubo un cambio local mientras subíamos: NO pisamos lo local.
+        // Guardamos la revisión y reenviamos para fusionar de nuevo.
+        datos.rev = resp.datos.rev || datos.rev;
+        programarPush();
+      }
+    }
     ponerEstado('guardado ' + horaCorta());
   } catch(e) {
     ponerEstado('sin conexión (pendiente)');
@@ -1473,20 +1510,24 @@ async function traerNube(silencioso) {
   try {
     const r = await fetch(ajustes.urlSync + '?api=1&v=' + Date.now());
     const remoto = await r.json();
-    const remotoTiene = nItems(remoto);
-    const localTiene = nItems(datos);
-    // Adoptamos lo remoto si: (a) es más nuevo, o (b) este equipo está vacío y la nube SÍ tiene datos
-    // (esto recupera solo los celulares que quedaron en ceros, sin importar la hora).
-    if (remoto && ((remoto.updatedAt && remoto.updatedAt > (datos.updatedAt || 0)) || (remotoTiene > 0 && localTiene === 0))) {
+    pullListo = true; // ya leímos la nube al menos una vez: es seguro enviar
+    // Si hay cambios locales sin confirmar, NO pisamos lo local: nos aseguramos de subirlos.
+    // El servidor los FUSIONA con lo demás, así nada se pierde.
+    if (sinEnviar || enviando) {
+      programarPush();
+      if (!silencioso) ponerEstado('sincronizando...');
+      return;
+    }
+    // La NUBE manda: si su revisión es más alta, adoptamos su versión (siempre al día).
+    const remotoRev = (remoto && typeof remoto.rev === 'number') ? remoto.rev : -1;
+    const localRev = (typeof datos.rev === 'number') ? datos.rev : -1;
+    const remotoTiene = nItems(remoto), localTiene = nItems(datos);
+    if (remoto && (remotoRev > localRev || (remotoTiene > 0 && localTiene === 0))) {
       adoptarRemoto(remoto);
-      cambiosPendientes = false; // adoptamos lo remoto; descartamos cambios locales previos
       ponerEstado('actualizado ' + horaCorta());
     } else if (!silencioso) {
       ponerEstado('al día ' + horaCorta());
     }
-    // Ya leímos la nube al menos una vez: ahora sí es seguro enviar.
-    pullListo = true;
-    if (cambiosPendientes) { cambiosPendientes = false; programarPush(); }
   } catch(e) { if (!silencioso) ponerEstado('sin conexión'); }
 }
 function adoptarRemoto(d) {
@@ -1498,6 +1539,7 @@ function adoptarRemoto(d) {
     nombresTallas: d.nombresTallas || {},
     clave: d.clave || '', claveCaja: d.claveCaja || '',
     usuarioAdmin: d.usuarioAdmin || 'admin', usuarioTrab: d.usuarioTrab || 'bodega', claveTrab: d.claveTrab || '',
+    borrados: d.borrados || [], rev: d.rev || 0,
     updatedAt: d.updatedAt || Date.now()
   };
   migrarEscaneadas();
@@ -1518,8 +1560,13 @@ async function sincronizarAhora() {
   await traerNube(true);
   await enviarNube();
 }
+// Refresco periódico (cada 20s) — la nube siempre manda
 setInterval(() => traerNube(true), 20000);
+// Refresco INMEDIATO cada vez que se abre/vuelve a la app: así nunca ves datos viejos del celular
 document.addEventListener('visibilitychange', () => { if (!document.hidden) traerNube(true); });
+window.addEventListener('focus', () => traerNube(true));
+window.addEventListener('pageshow', () => traerNube(true));
+window.addEventListener('online', () => traerNube(true));
 
 function renderTodo() {
   try { renderInventario(); } catch(e) {}
@@ -1530,6 +1577,9 @@ function renderTodo() {
 }
 document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-CO', {weekday:'short', day:'numeric', month:'short'});
 cargar();
+// Al abrir: si este celular tiene datos locales, los subimos UNA vez para fusionarlos en la nube
+// (así se recupera/combina todo lo que estuviera disperso entre celulares, sin pisar nada).
+sinEnviar = (lsGet('miBodegaPend') === '1') || nItems(datos) > 0;
 renderTodo();
 entrarComo('admin'); // sin login: entra directo con acceso total
 if (URL_NUBE_FIJA.startsWith('https://')) { ajustes.urlSync = URL_NUBE_FIJA; guardarAjustes(); }
