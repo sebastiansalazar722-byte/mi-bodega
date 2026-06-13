@@ -1458,6 +1458,19 @@ let cambioSeq = 0;       // contador de cambios locales
 let enviadoSeq = -1;     // hasta qué cambio alcanzamos a enviar
 function ponerEstado(txt) { document.getElementById('estadoSync').textContent = txt; }
 function horaCorta() { return new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}); }
+// LECTURA por JSONP (etiqueta <script>): esquiva el bloqueo CORS de Apps Script al leer.
+function jsonp(url) {
+  return new Promise(function(resolve, reject) {
+    var cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+    var s = document.createElement('script');
+    var timer = setTimeout(function() { limpiar(); reject(new Error('timeout')); }, 15000);
+    function limpiar() { clearTimeout(timer); try { delete window[cb]; } catch(e) { window[cb] = undefined; } if (s.parentNode) s.parentNode.removeChild(s); }
+    window[cb] = function(data) { limpiar(); resolve(data); };
+    s.onerror = function() { limpiar(); reject(new Error('script error')); };
+    s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
 
 function programarPush() {
   if (!ajustes.urlSync) return;
@@ -1481,24 +1494,19 @@ async function enviarNube() {
   enviando = true;
   const seqAlEnviar = cambioSeq; // qué versión local estamos subiendo
   try {
-    const r = await fetch(ajustes.urlSync, { method: 'POST', body: JSON.stringify(datos) });
-    const resp = await r.json();
-    if (resp && resp.datos) {
-      if (cambioSeq === seqAlEnviar) {
-        // No hubo cambios locales nuevos mientras subíamos:
-        // adoptamos lo FUSIONADO (lo de todos los celulares combinado).
-        enviadoSeq = seqAlEnviar;
-        sinEnviar = false;
-        lsSet('miBodegaPend', '0');
-        adoptarRemoto(resp.datos);
-      } else {
-        // Hubo un cambio local mientras subíamos: NO pisamos lo local.
-        // Guardamos la revisión y reenviamos para fusionar de nuevo.
-        datos.rev = resp.datos.rev || datos.rev;
-        programarPush();
-      }
+    // ESCRITURA con mode:'no-cors': el navegador SÍ envía el POST (Apps Script lo guarda),
+    // aunque no podamos leer la respuesta. Esto esquiva el bloqueo CORS al guardar.
+    await fetch(ajustes.urlSync, { method: 'POST', mode: 'no-cors', body: JSON.stringify(datos) });
+    if (cambioSeq === seqAlEnviar) {
+      enviadoSeq = seqAlEnviar;
+      sinEnviar = false;
+      lsSet('miBodegaPend', '0');
     }
     ponerEstado('guardado ' + horaCorta());
+    enviando = false;
+    // Como no pudimos leer la respuesta, leemos por JSONP lo FUSIONADO y lo adoptamos.
+    setTimeout(function() { traerNube(true); }, 1300);
+    return;
   } catch(e) {
     ponerEstado('sin conexión (pendiente)');
     setTimeout(enviarNube, 30000);
@@ -1508,8 +1516,7 @@ async function enviarNube() {
 async function traerNube(silencioso) {
   if (!ajustes.urlSync) return;
   try {
-    const r = await fetch(ajustes.urlSync + '?api=1&v=' + Date.now());
-    const remoto = await r.json();
+    const remoto = await jsonp(ajustes.urlSync + '?api=1&v=' + Date.now());
     pullListo = true; // ya leímos la nube al menos una vez: es seguro enviar
     // Si hay cambios locales sin confirmar, NO pisamos lo local: nos aseguramos de subirlos.
     // El servidor los FUSIONA con lo demás, así nada se pierde.
