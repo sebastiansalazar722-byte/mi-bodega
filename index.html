@@ -1493,21 +1493,25 @@ async function enviarNube() {
   if (nItems(datos) === 0) { sinEnviar = false; lsSet('miBodegaPend', '0'); return; }
   enviando = true;
   const seqAlEnviar = cambioSeq; // qué versión local estamos subiendo
+  // ENVÍO normal: el POST SÍ llega a doPost y guarda. El navegador bloquea LEER la respuesta
+  // (CORS), pero eso no importa: el guardado ya se hizo. Por eso ignoramos ese error.
   try {
-    // ESCRITURA con mode:'no-cors': el navegador SÍ envía el POST (Apps Script lo guarda),
-    // aunque no podamos leer la respuesta. Esto esquiva el bloqueo CORS al guardar.
-    await fetch(ajustes.urlSync, { method: 'POST', mode: 'no-cors', body: JSON.stringify(datos) });
+    await fetch(ajustes.urlSync, { method: 'POST', body: JSON.stringify(datos) });
+  } catch(eEnvio) { /* el bloqueo CORS al leer la respuesta es normal; el guardado igual entró */ }
+  // CONFIRMAMOS leyendo por JSONP (la lectura sí funciona). Si responde, estamos en línea.
+  try {
+    const remoto = await jsonp(ajustes.urlSync + '?api=1&v=' + Date.now());
     if (cambioSeq === seqAlEnviar) {
       enviadoSeq = seqAlEnviar;
       sinEnviar = false;
       lsSet('miBodegaPend', '0');
+      // Adoptamos lo FUSIONADO (la verdad combinada) si no hubo cambios nuevos mientras tanto.
+      const rr = (remoto && typeof remoto.rev === 'number') ? remoto.rev : -1;
+      const lr = (typeof datos.rev === 'number') ? datos.rev : -1;
+      if (remoto && (rr > lr || (nItems(remoto) > 0 && nItems(datos) === 0))) adoptarRemoto(remoto);
     }
     ponerEstado('guardado ' + horaCorta());
-    enviando = false;
-    // Como no pudimos leer la respuesta, leemos por JSONP lo FUSIONADO y lo adoptamos.
-    setTimeout(function() { traerNube(true); }, 1300);
-    return;
-  } catch(e) {
+  } catch(eLeer) {
     ponerEstado('sin conexión (pendiente)');
     setTimeout(enviarNube, 30000);
   }
